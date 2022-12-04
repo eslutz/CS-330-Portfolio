@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.3.32929.385
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "module_05_milestone", "module_05_milestone\module_05_milestone.vcxproj", "{4A1D291A-DFDF-4B4D-9BD7-DDDF26E22CF9}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "module_06_milestone", "module_06_milestone\module_06_milestone.vcxproj", "{4A1D291A-DFDF-4B4D-9BD7-DDDF26E22CF9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

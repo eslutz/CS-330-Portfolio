@@ -10,21 +10,29 @@
     <Filter Include="Source Files">
       <UniqueIdentifier>{9393b44c-35cd-4ef9-b01e-d7079de5aeda}</UniqueIdentifier>
     </Filter>
+    <Filter Include="TextureFiles">
+      <UniqueIdentifier>{0c6c292a-e782-4682-b1c2-1c18091ac1dd}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="module_05_milestone.cpp">
+    <ClCompile Include="module_06_milestone.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\textures\black_mesh.jpg">
-      <Filter>Resource Files</Filter>
-    </Image>
     <Image Include="..\textures\desk.jpg">
-      <Filter>Resource Files</Filter>
+      <Filter>TextureFiles</Filter>
+    </Image>
+    <Image Include="..\textures\black_mesh.jpg">
+      <Filter>TextureFiles</Filter>
     </Image>
     <Image Include="..\textures\black_rubber.jpg">
-      <Filter>Resource Files</Filter>
+      <Filter>TextureFiles</Filter>
     </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\includes\camera.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
