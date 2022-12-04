@@ -26,7 +26,9 @@ enum Camera_Movement {
     FORWARD,
     BACKWARD,
     LEFT,
-    RIGHT
+    RIGHT,
+    UP,
+    DOWN
 };
 
 // Default camera values
@@ -92,6 +94,10 @@ public:
             Position -= Right * velocity;
         if (direction == RIGHT)
             Position += Right * velocity;
+        if (direction == UP)
+            Position += Up * velocity;
+        if (direction == DOWN)
+            Position -= Up * velocity;
     }
 
     // processes input received from a mouse input system. Expects the offset value in both the x and y direction.
@@ -117,13 +123,46 @@ public:
     }
 
     // processes input received from a mouse scroll-wheel event. Only requires input on the vertical wheel-axis
-    void ProcessMouseScroll(float yoffset)
+    void AdjustMovementSpeed(float yoffset)
     {
-        Zoom -= (float)yoffset;
-        if (Zoom < 1.0f)
-            Zoom = 1.0f;
-        if (Zoom > 45.0f)
-            Zoom = 45.0f; 
+        // Adjusts camera movement speed
+        MovementSpeed -= (float)yoffset;
+        if (MovementSpeed < 1.0f)
+            MovementSpeed = 1.0f;
+        if (MovementSpeed > 45.0f)
+            MovementSpeed = 45.0f;
+    }
+
+    // processes input received from a mouse scroll-wheel event. Only requires input on the vertical wheel-axis
+    void AdjustZoom(float yoffset)
+    {
+         // Adjusts camera field of view
+         Zoom += (float)yoffset;
+         if (Zoom < 1.0f)
+             Zoom = 1.0f;
+         if (Zoom > 45.0f)
+             Zoom = 45.0f;
+    }
+
+    // resets camera position to the original location
+    void ResetCameraPosition()
+    {
+        Position = glm::vec3(0.0f, 2.0f, 15.0f);
+        Yaw = YAW;
+        Pitch = PITCH;
+        updateCameraVectors();
+    }
+
+    // resets camera to the original speed
+    void ResetCameraSpeed()
+    {
+        MovementSpeed = SPEED;
+    }
+
+    // resets camera to the original zoom
+    void ResetCameraZoom()
+    {
+        Zoom = ZOOM;
     }
 
 private:

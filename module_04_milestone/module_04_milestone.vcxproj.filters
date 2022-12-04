@@ -12,7 +12,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="module_03_milestone.cpp">
+    <ClCompile Include="module_04_milestone.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

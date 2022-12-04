@@ -1,5 +1,5 @@
 /*
- * Module 3 Milestone
+ * Module 4 Milestone
  * Eric Slutz
  */
 
@@ -14,6 +14,9 @@
 #include <glm/gtx/transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+// Camera class
+#include <learnOpengl/camera.h>
+
 using namespace std; // Standard namespace
 
 /* Shader program Macro */
@@ -25,7 +28,7 @@ using namespace std; // Standard namespace
 namespace
 {
     // Macro for window title
-    const char* const WINDOW_TITLE = "Module 3 Milestone - HomePod mini";
+    const char* const WINDOW_TITLE = "Module 4 Milestone - HomePod mini on Desk";
 
     // Variables for window width and height
     const int WINDOW_WIDTH = 800;
@@ -41,6 +44,8 @@ namespace
 
     // Main GLFW window
     GLFWwindow* gWindow = nullptr;
+    // Plane mesh data
+    GLMesh planeMesh;
     // Cube mesh data
     GLMesh cubeMesh;
     // Cylinder mesh data
@@ -50,6 +55,18 @@ namespace
     // Shader program
     GLuint gProgramId;
 }
+    // Camera
+    Camera gCamera(glm::vec3(0.0f, 2.0f, 15.0f));
+    float gLastX = WINDOW_WIDTH / 2.0f;
+    float gLastY = WINDOW_HEIGHT / 2.0f;
+    bool gFirstMouse = true;
+
+    // Timing
+    float gDeltaTime = 0.0f; // time between current frame and last frame
+    float gLastFrame = 0.0f;
+
+    // View mode
+    bool orthoView = false;
 
 /*
  * User-defined Function prototypes to:
@@ -60,6 +77,10 @@ namespace
 bool UInitialize(int, char* [], GLFWwindow** window);
 void UResizeWindow(GLFWwindow* window, int width, int height);
 void UProcessInput(GLFWwindow* window);
+void UMousePositionCallback(GLFWwindow* window, double xpos, double ypos);
+void UMouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
+void UMouseButtonCallback(GLFWwindow* window, int button, int action, int mods); 
+void CreatePlaneMesh(GLMesh& mesh);
 void CreateCubeMesh(GLMesh& mesh);
 void CreateCylinderMesh(GLMesh& mesh);
 void CreateSphereMesh(GLMesh& mesh);
@@ -101,17 +122,20 @@ void main()
 
 int main(int argc, char* argv[])
 {
-    if (!UInitialize(argc, argv, &gWindow)) {
+    if (!UInitialize(argc, argv, &gWindow))
+    {
         return EXIT_FAILURE;
     }
 
     // Create the mesh
+    CreatePlaneMesh(planeMesh);
     CreateCubeMesh(cubeMesh);
     CreateCylinderMesh(cylinderMesh);
     CreateSphereMesh(sphereMesh);
 
     // Create the shader program
-    if (!UCreateShaderProgram(vertexShaderSource, fragmentShaderSource, gProgramId)) {
+    if (!UCreateShaderProgram(vertexShaderSource, fragmentShaderSource, gProgramId))
+    {
         return EXIT_FAILURE;
     }
 
@@ -122,6 +146,12 @@ int main(int argc, char* argv[])
     // -----------
     while (!glfwWindowShouldClose(gWindow))
     {
+        // per-frame timing
+        // --------------------
+        float currentFrame = glfwGetTime();
+        gDeltaTime = currentFrame - gLastFrame;
+        gLastFrame = currentFrame;
+
         // input
         // -----
         UProcessInput(gWindow);
@@ -133,6 +163,7 @@ int main(int argc, char* argv[])
     }
 
     // Release mesh data
+    UDestroyMesh(planeMesh);
     UDestroyMesh(cubeMesh);
     UDestroyMesh(cylinderMesh);
     UDestroyMesh(sphereMesh);
@@ -168,6 +199,12 @@ bool UInitialize(int argc, char* argv[], GLFWwindow** window)
     }
     glfwMakeContextCurrent(*window);
     glfwSetFramebufferSizeCallback(*window, UResizeWindow);
+    glfwSetCursorPosCallback(*window, UMousePositionCallback);
+    glfwSetScrollCallback(*window, UMouseScrollCallback);
+    glfwSetMouseButtonCallback(*window, UMouseButtonCallback);
+
+    // Tell GLFW to capture the mouse
+    glfwSetInputMode(*window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     // GLEW: initialize
     // ----------------
@@ -190,17 +227,102 @@ bool UInitialize(int argc, char* argv[], GLFWwindow** window)
 // Process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 void UProcessInput(GLFWwindow* window)
 {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
+    // Exit the program
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) { glfwSetWindowShouldClose(window, true); }
+
+    // Keyboard movement keys
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) { gCamera.ProcessKeyboard(FORWARD, gDeltaTime); }
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) { gCamera.ProcessKeyboard(BACKWARD, gDeltaTime); }
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) { gCamera.ProcessKeyboard(LEFT, gDeltaTime); }
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) { gCamera.ProcessKeyboard(RIGHT, gDeltaTime); }
+    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) { gCamera.ProcessKeyboard(UP, gDeltaTime); }
+    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) { gCamera.ProcessKeyboard(DOWN, gDeltaTime); }
+
+    // Switch view mode
+    if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
+    {
+        orthoView = !orthoView;
+        cout << (orthoView ? "Switched to orthographic view" : "Switched to projection view") << endl;
+    }
 }
 
-// GLFW: Whenever the window size changed (by OS or user resize) this callback function executes
+// GLFW: whenever the window size changed (by OS or user resize) this callback function executes
 void UResizeWindow(GLFWwindow* window, int width, int height)
 {
     glViewport(0, 0, width, height);
 }
 
-// Functioned called to render a frame
+// GLFW: whenever the mouse moves, this callback is called
+// -------------------------------------------------------
+void UMousePositionCallback(GLFWwindow* window, double xpos, double ypos)
+{
+    if (gFirstMouse)
+    {
+        gLastX = xpos;
+        gLastY = ypos;
+        gFirstMouse = false;
+    }
+
+    float xoffset = xpos - gLastX;
+    float yoffset = gLastY - ypos; // reversed since y-coordinates go from bottom to top
+
+    gLastX = xpos;
+    gLastY = ypos;
+
+    gCamera.ProcessMouseMovement(xoffset, yoffset);
+}
+
+// GLFW: whenever the mouse scroll wheel scrolls, this callback is called
+// ----------------------------------------------------------------------
+void UMouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS ||
+        glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS)
+    {
+        cout << "Camera zoom adjusted" << endl;
+        gCamera.AdjustZoom(yoffset);
+    }
+    else
+    {
+        cout << "Camera movement speed adjusted" << endl;
+        gCamera.AdjustMovementSpeed(yoffset);
+    }
+}
+
+// GLFW: handle mouse button events
+// --------------------------------
+void UMouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
+{
+    switch (button)
+    {
+        case GLFW_MOUSE_BUTTON_LEFT:
+            if (action == GLFW_PRESS)
+            {
+                cout << "Camera position reset" << endl;
+                gCamera.ResetCameraPosition();
+            }
+            break;
+        case GLFW_MOUSE_BUTTON_RIGHT:
+            if (action == GLFW_PRESS && 
+                (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS ||
+                glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS))
+            {
+                cout << "Camera zoom reset" << endl;
+                gCamera.ResetCameraZoom();
+            }
+            else if (action == GLFW_PRESS)
+            {
+                cout << "Camera movement speed reset" << endl;
+                gCamera.ResetCameraSpeed();
+            }
+            break;
+        default:
+            cout << "Unhandled mouse button event" << endl;
+            break;
+    }
+}
+
+// Function called to render a frame
 void URender()
 {
     // Enable z-depth
@@ -210,11 +332,27 @@ void URender()
     glClearColor(0.412f, 0.412f, 0.412f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // Set the view
-    // Transforms the camera: move the camera along axes
-    glm::mat4 view = glm::translate(glm::vec3(0.0f, 0.0f, -10.0f));
-    // Creates a perspective projection
-    glm::mat4 projection = glm::perspective(45.0f, (GLfloat)WINDOW_WIDTH / (GLfloat)WINDOW_HEIGHT, 0.1f, 100.0f);
+    // Declare view and projection
+    glm::mat4 view;
+    glm::mat4 projection;
+
+    if (orthoView)
+    {
+        // Set width and height for orthographic view
+        GLfloat orthoWidth = (GLfloat)WINDOW_WIDTH * 0.01f;
+        GLfloat orthoHeight = (GLfloat)WINDOW_HEIGHT * 0.01f;
+        // Camera/view transformation
+        view = gCamera.GetViewMatrix();
+        // Creates an orthographic (2D) projection
+        projection = glm::ortho((GLfloat)WINDOW_WIDTH * 0.01f, (GLfloat)WINDOW_WIDTH * 0.01f, -(GLfloat)WINDOW_HEIGHT * 0.01f, (GLfloat)WINDOW_HEIGHT * 0.01f, 0.1f, 100.0f);
+    }
+    else
+    {
+        // Camera/view transformation
+        view = gCamera.GetViewMatrix();
+        // Creates a perspective (3D) projection
+        projection = glm::perspective(glm::radians(gCamera.Zoom), (GLfloat)WINDOW_WIDTH / (GLfloat)WINDOW_HEIGHT, 0.1f, 100.0f);
+    }
 
     // Retrieves and passes view and projection matrices to the Shader program
     GLint viewLoc = glGetUniformLocation(gProgramId, "view");
@@ -222,16 +360,61 @@ void URender()
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
     glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
-    /*
-    * HomePod mini
-    */
+    /* Desk */
+    // Render plane
+    RenderMesh(planeMesh, glm::vec3(10.0f, 1.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+    
+    /* HomePod mini */
     // Render cylinder
     RenderMesh(cylinderMesh, glm::vec3(1.0f, 0.5f, 1.0f), glm::vec3(90.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f));
     // Render sphere
-    RenderMesh(sphereMesh, glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, .0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    RenderMesh(sphereMesh, glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
     // GLFW: Swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
     glfwSwapBuffers(gWindow); // Flips the the back buffer with the front buffer every frame.
+}
+
+// Create plane mesh
+void CreatePlaneMesh(GLMesh& mesh)
+{
+    // Position and Color data
+    GLfloat verts[] = {
+        // Vertex Positions      // Colors (r,g,b,a)
+         -1.0f,  0.0f,  1.0f,   0.0f, 1.0f, 0.0f, 1.0f, // Index 0 - top left
+          1.0f,  0.0f,  1.0f,   1.0f, 0.0f, 0.0f, 1.0f, // Index 1 - top right
+          1.0f,  0.0f, -1.0f,   0.0f, 1.0f, 0.0f, 1.0f, // Index 2 - bottom right
+         -1.0f,  0.0f, -1.0f,   1.0f, 0.0f, 0.0f, 1.0f, // Index 3 - bottom left
+    };
+
+    // Index data to share position data
+    GLushort indices[] = {
+        3, 0, 1, 1, 2, 3  // plane
+    };
+
+    const GLuint floatsPerVertex = 3;
+    const GLuint floatsPerColor = 4;
+
+    glGenVertexArrays(1, &mesh.vao); // We can also generate multiple VAOs or buffers at the same time
+    glBindVertexArray(mesh.vao);
+
+    // Create 2 buffers: first one for the vertex data; second one for the indices
+    glGenBuffers(2, mesh.vbos);
+    glBindBuffer(GL_ARRAY_BUFFER, mesh.vbos[0]); // Activates the buffer
+    glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW); // Sends vertex or coordinate data to the GPU
+
+    mesh.nIndices = sizeof(indices) / sizeof(indices[0]);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.vbos[1]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+    // Strides between vertex coordinates is 6 (x, y, z, r, g, b, a). A tightly packed stride is 0.
+    GLint stride = sizeof(float) * (floatsPerVertex + floatsPerColor); // The number of floats before each
+
+    // Create Vertex Attribute Pointers
+    glVertexAttribPointer(0, floatsPerVertex, GL_FLOAT, GL_FALSE, stride, 0);
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, floatsPerColor, GL_FLOAT, GL_FALSE, stride, (char*)(sizeof(float) * floatsPerVertex));
+    glEnableVertexAttribArray(1);
 }
 
 // Create cube mesh
@@ -333,7 +516,7 @@ void CreateCylinderMesh(GLMesh& mesh)
         verts[pointer + 3] = i % 3 == 0 ? 1.0f : 0.0f;
         verts[pointer + 4] = i % 3 == 1 ? 1.0f : 0.0f;
         verts[pointer + 5] = i % 3 == 2 ? 1.0f : 0.0f;
-        verts[pointer + 6] = 1;
+        verts[pointer + 6] = 1.0f;
     }
 
     // Index data to share position data
@@ -427,14 +610,10 @@ void CreateSphereMesh(GLMesh& mesh)
             verts[pointer + 1] = vertex[i][j].y;
             verts[pointer + 2] = vertex[i][j].z;
 
-            verts[pointer + 3] = 0.0f;
-            verts[pointer + 4] = 0.0f;
-            verts[pointer + 5] = 1.0f;
-            verts[pointer + 6] = 1;
-            //verts[pointer + 3] = i % 3 == 0 ? 1.0f : 0.0f;
-            //verts[pointer + 4] = i % 3 == 1 ? 1.0f : 0.0f;
-            //verts[pointer + 5] = i % 3 == 2 ? 1.0f : 0.0f;
-            //verts[pointer + 6] = 1;
+            verts[pointer + 3] = i % 3 == 0 ? 1.0f : 0.0f;
+            verts[pointer + 4] = i % 3 == 1 ? 1.0f : 0.0f;
+            verts[pointer + 5] = i % 3 == 2 ? 1.0f : 0.0f;
+            verts[pointer + 6] = 1.0f;
 
             pointer = ((i * (complexity + 1)) + j) * 6;
 
@@ -499,6 +678,7 @@ void RenderMesh(GLMesh& mesh, glm::vec3 scale, glm::vec3 rotation, glm::vec3 tra
     glBindVertexArray(0);
 }
 
+// Destroys the mesh
 void UDestroyMesh(GLMesh& mesh)
 {
     glDeleteVertexArrays(1, &mesh.vao);
@@ -563,6 +743,7 @@ bool UCreateShaderProgram(const char* vtxShaderSource, const char* fragShaderSou
     return true;
 }
 
+// Destroys the shader
 void UDestroyShaderProgram(GLuint programId)
 {
     glDeleteProgram(programId);

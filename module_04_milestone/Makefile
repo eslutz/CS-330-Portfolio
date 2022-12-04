@@ -3,12 +3,12 @@ CFLAGS = $(INCLUDE_DIRS) -Wall -Wextra -ansi -pedantic -g -no-pie -std=c++11
 CYGWIN_OPTS = -Wl,--enable-auto-import
 LDLIBS = -lGL -lGLEW -lglfw
 BUILDDIR = ../build
-EXECS = module_03_milestone
+EXECS = module_04_milestone
 
 all : $(EXECS) postbuild
 
-module_03_milestone : module_03_milestone.cpp
-	$(CC) $(CFLAGS) -o module_03_milestone module_03_milestone.cpp $(LDLIBS)
+module_04_milestone : module_04_milestone.cpp
+	$(CC) $(CFLAGS) -o module_04_milestone module_04_milestone.cpp $(LDLIBS)
 
 
 $(BUILDDIR) :
