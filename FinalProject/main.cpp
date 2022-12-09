@@ -56,6 +56,7 @@ namespace
     GLuint gMeshFabricTextureId;
     GLuint gRubberBaseTextureId;
     GLuint gMousePadTextureId;
+    GLuint gInfinityCubeTextureId;
     // Shader programs
     GLuint gProgramId;
     GLuint gLampProgramId;
@@ -266,6 +267,7 @@ int main(int argc, char* argv[])
     UCreatePlaneMesh(gPlaneMesh);
     UCreateCylinderMesh(gCylinderMesh);
     UCreateSphereMesh(gSphereMesh);
+    UCreateCubeMesh(gCubeMesh);
 
     // Create the shader programs
     if (!UCreateShaderProgram(vertexShaderSource, fragmentShaderSource, gProgramId))
@@ -319,6 +321,16 @@ int main(int argc, char* argv[])
     glUseProgram(gProgramId); // tell opengl texture unit sample belongs to
     glUniform1i(glGetUniformLocation(gProgramId, "mousePadTexture"), 0); // Set the texture as texture unit 0
 
+    // Load mouse pad texture
+    texFilename = "../textures/infinity_cube.png";
+    if (!UCreateTexture(texFilename, gInfinityCubeTextureId))
+    {
+        cout << "Failed to load texture " << texFilename << endl;
+        return EXIT_FAILURE;
+    }
+    glUseProgram(gProgramId); // tell opengl texture unit sample belongs to
+    glUniform1i(glGetUniformLocation(gProgramId, "infinityCubeTexture"), 0); // Set the texture as texture unit 0
+
     // Sets the background color of the window (it will be implicitely used by glClear)
     glClearColor(0.412f, 0.412f, 0.412f, 1.0f);
 
@@ -346,11 +358,15 @@ int main(int argc, char* argv[])
     UDestroyMesh(gPlaneMesh);
     UDestroyMesh(gCylinderMesh);
     UDestroyMesh(gSphereMesh);
+    UDestroyMesh(gCubeMesh);
+    
 
     // Release texture
     UDestroyTexture(gDeskTextureId);
     UDestroyTexture(gMeshFabricTextureId);
     UDestroyTexture(gRubberBaseTextureId);
+    UDestroyTexture(gMousePadTextureId);
+    UDestroyTexture(gInfinityCubeTextureId);
 
     // Release shader program
     UDestroyShaderProgram(gProgramId);
@@ -793,6 +809,58 @@ void URender()
     // Draws the triangles
     glDrawElements(GL_TRIANGLES, gPlaneMesh.nIndices, GL_UNSIGNED_SHORT, NULL);
 
+    // INFINITY CUBE: draw infinity cube
+    //----------------
+    // Activate the VBOs contained within the mesh's VAO
+    glBindVertexArray(gCubeMesh.vao);
+
+    // Set the shader to be used
+    glUseProgram(gProgramId);
+
+    // Set scale, rotation, and translation
+    scale = glm::scale(glm::vec3(0.35f, 0.35f, 0.35f));
+    rotation = glm::rotate(glm::radians(25.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    translation = glm::translate(glm::vec3(-5.0f, -0.649f, -1.0f));
+    model = translation * rotation * scale; // Creates transform matrix
+
+    // Reference matrix uniforms from the shader program
+    viewLoc = glGetUniformLocation(gProgramId, "view");
+    projLoc = glGetUniformLocation(gProgramId, "projection");
+    modelLoc = glGetUniformLocation(gProgramId, "model");
+
+    // Pass matrix data to the shader program's matrix uniforms
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+    glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+
+    // Reference matrix uniforms
+    lightColorLoc = glGetUniformLocation(gProgramId, "lightColor");
+    lightPositionLoc = glGetUniformLocation(gProgramId, "lightPos");
+    viewPositionLoc = glGetUniformLocation(gProgramId, "viewPosition");
+    lightColorLoc2 = glGetUniformLocation(gProgramId, "lightColor2");
+    lightPositionLoc2 = glGetUniformLocation(gProgramId, "lightPos2");
+    viewPositionLoc2 = glGetUniformLocation(gProgramId, "viewPosition2");
+
+    // Pass color, light, and camera data to the shader program's corresponding uniforms
+    glUniform3f(lightColorLoc, gLightColor.r, gLightColor.g, gLightColor.b);
+    glUniform3f(lightPositionLoc, gLightPosition.x, gLightPosition.y, gLightPosition.z);
+    glUniform3f(viewPositionLoc, cameraPosition.x, cameraPosition.y, cameraPosition.z);
+    glUniform3f(lightColorLoc2, gLightColor2.r, gLightColor2.g, gLightColor2.b);
+    glUniform3f(lightPositionLoc2, gLightPosition2.x, gLightPosition2.y, gLightPosition2.z);
+    glUniform3f(viewPositionLoc2, cameraPosition.x, cameraPosition.y, cameraPosition.z);
+
+    // Set texture scale
+    uvScale = glm::vec2(1.0f, 1.0f);
+    uvScaleLoc = glGetUniformLocation(gProgramId, "uvScale");
+    glUniform2fv(uvScaleLoc, 1, glm::value_ptr(uvScale));
+
+    // Bind textures on corresponding texture units
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, gInfinityCubeTextureId);
+
+    // Draws the triangles
+    glDrawArrays(GL_TRIANGLES, 0, gCubeMesh.nIndices);
+
     // LAMP 1: draw lamp
     //----------------
     // Activate the VBOs contained within the mesh's VAO
@@ -959,51 +1027,77 @@ void UCreateCubeMesh(GLMesh& mesh)
     GLfloat verts[] = {
         // Positions           // Normals            //Textures
         // ----------------------------------------------------
-        1.0f,  1.0f,  1.0f,   1.0f,  1.0f,  1.0f,   1.0f, 1.0f, // Index 0 - top point, quad 1
-       -1.0f,  1.0f,  1.0f,  -1.0f,  1.0f,  1.0f,   0.0f, 1.0f, // Index 1 - top point, quad 2
-       -1.0f, -1.0f,  1.0f,  -1.0f, -1.0f,  1.0f,   0.0f, 1.0f, // Index 2 - top point, quad 3
-        1.0f, -1.0f,  1.0f,   1.0f, -1.0f,  1.0f,   1.0f, 1.0f, // Index 3 - top point, quad 4
+        // Back Face          Negative Z Normal     Texture Coords.
+       -1.0f, -1.0f, -1.0f,   0.0f,  0.0f, -1.0f,   0.0f, 0.0f,
+        1.0f, -1.0f, -1.0f,   0.0f,  0.0f, -1.0f,   1.0f, 0.0f,
+        1.0f,  1.0f, -1.0f,   0.0f,  0.0f, -1.0f,   1.0f, 1.0f,
+        1.0f,  1.0f, -1.0f,   0.0f,  0.0f, -1.0f,   1.0f, 1.0f,
+       -1.0f,  1.0f, -1.0f,   0.0f,  0.0f, -1.0f,   0.0f, 1.0f,
+       -1.0f, -1.0f, -1.0f,   0.0f,  0.0f, -1.0f,   0.0f, 0.0f,
 
-        1.0f,  1.0f, -1.0f,   1.0f,  1.0f, -1.0f,   1.0f, 0.0f, // Index 4 - bottom point, quad 1
-       -1.0f,  1.0f, -1.0f,  -1.0f,  1.0f, -1.0f,   0.0f, 0.0f, // Index 5 - bottom point, quad 2
-       -1.0f, -1.0f, -1.0f,  -1.0f, -1.0f, -1.0f,   0.0f, 0.0f, // Index 6 - bottom point, quad 3
-        1.0f, -1.0f, -1.0f,   1.0f, -1.0f, -1.0f,   1.0f, 0.0f, // Index 7 - bottom point, quad 4
-    };
+        // Front Face         Positive Z Normal     Texture Coords.
+       -1.0f, -1.0f,  1.0f,   0.0f,  0.0f,  1.0f,   0.0f, 0.0f,
+        1.0f, -1.0f,  1.0f,   0.0f,  0.0f,  1.0f,   1.0f, 0.0f,
+        1.0f,  1.0f,  1.0f,   0.0f,  0.0f,  1.0f,   1.0f, 1.0f,
+        1.0f,  1.0f,  1.0f,   0.0f,  0.0f,  1.0f,   1.0f, 1.0f,
+       -1.0f,  1.0f,  1.0f,   0.0f,  0.0f,  1.0f,   0.0f, 1.0f,
+       -1.0f, -1.0f,  1.0f,   0.0f,  0.0f,  1.0f,   0.0f, 0.0f,
 
-    // Index data to share position data
-    GLushort indices[] = {
-        0, 1, 2, 2, 3, 0, // cube top
-        4, 5, 6, 6, 7, 4, // cube bottom
-        1, 0, 4, 4, 5, 1, // cube side 1
-        2, 1, 5, 5, 6, 2, // cube side 2
-        3, 2, 6, 6, 7, 3, // cube side 3
-        0, 3, 7, 7, 4, 0, // cube side 4
+        // Left Face           Negative X Normal    Texture Coords.
+       -1.0f,  1.0f,  1.0f,  -1.0f,  0.0f,  0.0f,   1.0f, 0.0f,
+       -1.0f,  1.0f, -1.0f,  -1.0f,  0.0f,  0.0f,   1.0f, 1.0f,
+       -1.0f, -1.0f, -1.0f,  -1.0f,  0.0f,  0.0f,   0.0f, 1.0f,
+       -1.0f, -1.0f, -1.0f,  -1.0f,  0.0f,  0.0f,   0.0f, 1.0f,
+       -1.0f, -1.0f,  1.0f,  -1.0f,  0.0f,  0.0f,   0.0f, 0.0f,
+       -1.0f,  1.0f,  1.0f,  -1.0f,  0.0f,  0.0f,   1.0f, 0.0f,
+
+        // Right Face         Positive X Normal     Texture Coords.
+        1.0f,  1.0f,  1.0f,   1.0f,  0.0f,  0.0f,   1.0f, 0.0f,
+        1.0f,  1.0f, -1.0f,   1.0f,  0.0f,  0.0f,   1.0f, 1.0f,
+        1.0f, -1.0f, -1.0f,   1.0f,  0.0f,  0.0f,   0.0f, 1.0f,
+        1.0f, -1.0f, -1.0f,   1.0f,  0.0f,  0.0f,   0.0f, 1.0f,
+        1.0f, -1.0f,  1.0f,   1.0f,  0.0f,  0.0f,   0.0f, 0.0f,
+        1.0f,  1.0f,  1.0f,   1.0f,  0.0f,  0.0f,   1.0f, 0.0f,
+
+        // Bottom Face        Negative Y Normal     Texture Coords.
+       -1.0f, -1.0f, -1.0f,   0.0f, -1.0f,  0.0f,   0.0f, 1.0f,
+        1.0f, -1.0f, -1.0f,   0.0f, -1.0f,  0.0f,   1.0f, 1.0f,
+        1.0f, -1.0f,  1.0f,   0.0f, -1.0f,  0.0f,   1.0f, 0.0f,
+        1.0f, -1.0f,  1.0f,   0.0f, -1.0f,  0.0f,   1.0f, 0.0f,
+       -1.0f, -1.0f,  1.0f,   0.0f, -1.0f,  0.0f,   0.0f, 0.0f,
+       -1.0f, -1.0f, -1.0f,   0.0f, -1.0f,  0.0f,   0.0f, 1.0f,
+
+        // Top Face           Positive Y Normal     Texture Coords.
+       -1.0f,  1.0f, -1.0f,   0.0f,  1.0f,  0.0f,   0.0f, 1.0f,
+        1.0f,  1.0f, -1.0f,   0.0f,  1.0f,  0.0f,   1.0f, 1.0f,
+        1.0f,  1.0f,  1.0f,   0.0f,  1.0f,  0.0f,   1.0f, 0.0f,
+        1.0f,  1.0f,  1.0f,   0.0f,  1.0f,  0.0f,   1.0f, 0.0f,
+       -1.0f,  1.0f,  1.0f,   0.0f,  1.0f,  0.0f,   0.0f, 0.0f,
+       -1.0f,  1.0f, -1.0f,   0.0f,  1.0f,  0.0f,   0.0f, 1.0f
     };
 
     const GLuint floatsPerVertex = 3;
     const GLuint floatsPerNormal = 3;
     const GLuint floatsPerUV = 2;
 
-    glGenVertexArrays(1, &mesh.vao); // We can also generate multiple VAOs or buffers at the same time
+    mesh.nIndices = sizeof(verts) / (sizeof(verts[0]) * (floatsPerVertex + floatsPerNormal + floatsPerUV));
+
+    glGenVertexArrays(1, &mesh.vao); // we can also generate multiple VAOs or buffers at the same time
     glBindVertexArray(mesh.vao);
 
     // Create 2 buffers: first one for the vertex data; second one for the indices
-    glGenBuffers(2, mesh.vbos);
+    glGenBuffers(1, &mesh.vbos[0]);
     glBindBuffer(GL_ARRAY_BUFFER, mesh.vbos[0]); // Activates the buffer
     glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW); // Sends vertex or coordinate data to the GPU
 
-    mesh.nIndices = sizeof(indices) / sizeof(indices[0]);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.vbos[1]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-    // Strides between vertex coordinates
-    GLint stride = sizeof(float) * (floatsPerVertex + floatsPerNormal + floatsPerUV); // The number of floats before each
+    // Strides between vertex coordinates is 6 (x, y, z, r, g, b, a). A tightly packed stride is 0.
+    GLint stride = sizeof(float) * (floatsPerVertex + floatsPerNormal + floatsPerUV);// The number of floats before each
 
     // Create Vertex Attribute Pointers
     glVertexAttribPointer(0, floatsPerVertex, GL_FLOAT, GL_FALSE, stride, 0);
     glEnableVertexAttribArray(0);
 
-    glVertexAttribPointer(1, floatsPerNormal, GL_FLOAT, GL_FALSE, stride, (char*)(sizeof(float) * floatsPerVertex));
+    glVertexAttribPointer(1, floatsPerNormal, GL_FLOAT, GL_FALSE, stride, (void*)(sizeof(float) * floatsPerVertex));
     glEnableVertexAttribArray(1);
 
     glVertexAttribPointer(2, floatsPerUV, GL_FLOAT, GL_FALSE, stride, (void*)(sizeof(float) * (floatsPerVertex + floatsPerNormal)));
