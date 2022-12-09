@@ -102,12 +102,11 @@ void UProcessInput(GLFWwindow* window);
 void UMousePositionCallback(GLFWwindow* window, double xpos, double ypos);
 void UMouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 void UMouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
-void UCreateCubeMesh(GLMesh& mesh);
+void UCreateCubeMesh(GLMesh& mesh, float frontHeight = 1, float backHeight = 1);
 void UCreateCylinderMesh(GLMesh& mesh);
 void UCreatePlaneMesh(GLMesh& mesh);
 void UCreatePyramidMesh(GLMesh& mesh);
 void UCreateSphereMesh(GLMesh& mesh);
-void UCreateWedgeMesh(GLMesh& mesh, float frontHeight, float backHeight);
 void UDestroyMesh(GLMesh& mesh);
 bool UCreateTexture(const char* filename, GLuint& textureId);
 void UDestroyTexture(GLuint textureId);
@@ -267,10 +266,10 @@ int main(int argc, char* argv[])
     // Create the scene meshes
     // -----------------------
     UCreateCubeMesh(gCubeMesh);
+    UCreateCubeMesh(gWedgeMesh, 0.4f, 1.0f);
     UCreateCylinderMesh(gCylinderMesh);
     UCreatePlaneMesh(gPlaneMesh);
     UCreateSphereMesh(gSphereMesh);
-    UCreateWedgeMesh(gWedgeMesh, 0.4f, 1.0f);
 
     // Create the shader programs
     if (!UCreateShaderProgram(vertexShaderSource, fragmentShaderSource, gProgramId))
@@ -772,7 +771,7 @@ void URender()
     // Set scale, rotation, and translation
     scale = glm::scale(glm::vec3(2.25f, 1.0f, 2.0f));
     rotation = glm::rotate(glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    translation = glm::translate(glm::vec3(5.0f, -0.999f, 2.0f));
+    translation = glm::translate(glm::vec3(6.0f, -0.999f, 1.9f));
     model = translation * rotation * scale; // Creates transform matrix
 
     // Reference matrix uniforms from the shader program
@@ -975,43 +974,50 @@ void URender()
     glfwSwapBuffers(gWindow); // Flips the the back buffer with the front buffer every frame.
 }
 
-// Create cube mesh
-void UCreateCubeMesh(GLMesh& mesh)
+// Create cube mesh, specifying height of front and back (0 to 1, default to 1)
+void UCreateCubeMesh(GLMesh& mesh, float frontHeight, float backHeight)
 {
+    if (frontHeight < 0 || frontHeight > 1 || backHeight < 0 || backHeight > 1)
+    {
+        throw invalid_argument("Height must be between 0 and 1");
+    }
+
+    float fh = -1 + (frontHeight * 2), bh = -1 + (backHeight * 2);
+
     GLfloat verts[] = {
         // Positions           // Normals            //Textures
         // ----------------------------------------------------
         // Back Face          Negative Z Normal     Texture Coords.
        -1.0f, -1.0f, -1.0f,   0.0f,  0.0f, -1.0f,   0.0f, 0.0f,
         1.0f, -1.0f, -1.0f,   0.0f,  0.0f, -1.0f,   1.0f, 0.0f,
-        1.0f,  1.0f, -1.0f,   0.0f,  0.0f, -1.0f,   1.0f, 1.0f,
-        1.0f,  1.0f, -1.0f,   0.0f,  0.0f, -1.0f,   1.0f, 1.0f,
-       -1.0f,  1.0f, -1.0f,   0.0f,  0.0f, -1.0f,   0.0f, 1.0f,
+        1.0f,  bh,   -1.0f,   0.0f,  0.0f, -1.0f,   1.0f, 1.0f,
+        1.0f,  bh,   -1.0f,   0.0f,  0.0f, -1.0f,   1.0f, 1.0f,
+       -1.0f,  bh,   -1.0f,   0.0f,  0.0f, -1.0f,   0.0f, 1.0f,
        -1.0f, -1.0f, -1.0f,   0.0f,  0.0f, -1.0f,   0.0f, 0.0f,
 
         // Front Face         Positive Z Normal     Texture Coords.
        -1.0f, -1.0f,  1.0f,   0.0f,  0.0f,  1.0f,   0.0f, 0.0f,
         1.0f, -1.0f,  1.0f,   0.0f,  0.0f,  1.0f,   1.0f, 0.0f,
-        1.0f,  1.0f,  1.0f,   0.0f,  0.0f,  1.0f,   1.0f, 1.0f,
-        1.0f,  1.0f,  1.0f,   0.0f,  0.0f,  1.0f,   1.0f, 1.0f,
-       -1.0f,  1.0f,  1.0f,   0.0f,  0.0f,  1.0f,   0.0f, 1.0f,
+        1.0f,  fh,    1.0f,   0.0f,  0.0f,  1.0f,   1.0f, 1.0f,
+        1.0f,  fh,    1.0f,   0.0f,  0.0f,  1.0f,   1.0f, 1.0f,
+       -1.0f,  fh,    1.0f,   0.0f,  0.0f,  1.0f,   0.0f, 1.0f,
        -1.0f, -1.0f,  1.0f,   0.0f,  0.0f,  1.0f,   0.0f, 0.0f,
 
         // Left Face           Negative X Normal    Texture Coords.
-       -1.0f,  1.0f,  1.0f,  -1.0f,  0.0f,  0.0f,   1.0f, 0.0f,
-       -1.0f,  1.0f, -1.0f,  -1.0f,  0.0f,  0.0f,   1.0f, 1.0f,
+       -1.0f,  fh,    1.0f,  -1.0f,  0.0f,  0.0f,   1.0f, 0.0f,
+       -1.0f,  bh,   -1.0f,  -1.0f,  0.0f,  0.0f,   1.0f, 1.0f,
        -1.0f, -1.0f, -1.0f,  -1.0f,  0.0f,  0.0f,   0.0f, 1.0f,
        -1.0f, -1.0f, -1.0f,  -1.0f,  0.0f,  0.0f,   0.0f, 1.0f,
        -1.0f, -1.0f,  1.0f,  -1.0f,  0.0f,  0.0f,   0.0f, 0.0f,
-       -1.0f,  1.0f,  1.0f,  -1.0f,  0.0f,  0.0f,   1.0f, 0.0f,
+       -1.0f,  fh,    1.0f,  -1.0f,  0.0f,  0.0f,   1.0f, 0.0f,
 
         // Right Face         Positive X Normal     Texture Coords.
-        1.0f,  1.0f,  1.0f,   1.0f,  0.0f,  0.0f,   1.0f, 0.0f,
-        1.0f,  1.0f, -1.0f,   1.0f,  0.0f,  0.0f,   1.0f, 1.0f,
+        1.0f,  fh,    1.0f,   1.0f,  0.0f,  0.0f,   1.0f, 0.0f,
+        1.0f,  bh,   -1.0f,   1.0f,  0.0f,  0.0f,   1.0f, 1.0f,
         1.0f, -1.0f, -1.0f,   1.0f,  0.0f,  0.0f,   0.0f, 1.0f,
         1.0f, -1.0f, -1.0f,   1.0f,  0.0f,  0.0f,   0.0f, 1.0f,
         1.0f, -1.0f,  1.0f,   1.0f,  0.0f,  0.0f,   0.0f, 0.0f,
-        1.0f,  1.0f,  1.0f,   1.0f,  0.0f,  0.0f,   1.0f, 0.0f,
+        1.0f,  fh,    1.0f,   1.0f,  0.0f,  0.0f,   1.0f, 0.0f,
 
         // Bottom Face        Negative Y Normal     Texture Coords.
        -1.0f, -1.0f, -1.0f,   0.0f, -1.0f,  0.0f,   0.0f, 1.0f,
@@ -1022,12 +1028,12 @@ void UCreateCubeMesh(GLMesh& mesh)
        -1.0f, -1.0f, -1.0f,   0.0f, -1.0f,  0.0f,   0.0f, 1.0f,
 
         // Top Face           Positive Y Normal     Texture Coords.
-       -1.0f,  1.0f, -1.0f,   0.0f,  1.0f,  0.0f,   0.0f, 1.0f,
-        1.0f,  1.0f, -1.0f,   0.0f,  1.0f,  0.0f,   1.0f, 1.0f,
-        1.0f,  1.0f,  1.0f,   0.0f,  1.0f,  0.0f,   1.0f, 0.0f,
-        1.0f,  1.0f,  1.0f,   0.0f,  1.0f,  0.0f,   1.0f, 0.0f,
-       -1.0f,  1.0f,  1.0f,   0.0f,  1.0f,  0.0f,   0.0f, 0.0f,
-       -1.0f,  1.0f, -1.0f,   0.0f,  1.0f,  0.0f,   0.0f, 1.0f
+       -1.0f,  bh,   -1.0f,   0.0f,  1.0f,  0.0f,   0.0f, 1.0f,
+        1.0f,  bh,   -1.0f,   0.0f,  1.0f,  0.0f,   1.0f, 1.0f,
+        1.0f,  fh,    1.0f,   0.0f,  1.0f,  0.0f,   1.0f, 0.0f,
+        1.0f,  fh,    1.0f,   0.0f,  1.0f,  0.0f,   1.0f, 0.0f,
+       -1.0f,  fh,    1.0f,   0.0f,  1.0f,  0.0f,   0.0f, 0.0f,
+       -1.0f,  bh,   -1.0f,   0.0f,  1.0f,  0.0f,   0.0f, 1.0f
     };
 
     const GLuint floatsPerVertex = 3;
@@ -1353,96 +1359,6 @@ void UCreateSphereMesh(GLMesh& mesh)
     glEnableVertexAttribArray(0);
 
     glVertexAttribPointer(1, floatsPerNormal, GL_FLOAT, GL_FALSE, stride, (char*)(sizeof(float) * floatsPerVertex));
-    glEnableVertexAttribArray(1);
-
-    glVertexAttribPointer(2, floatsPerUV, GL_FLOAT, GL_FALSE, stride, (void*)(sizeof(float) * (floatsPerVertex + floatsPerNormal)));
-    glEnableVertexAttribArray(2);
-}
-
-// Create wedge mesh, specifying height of front and back (0 to 1)
-void UCreateWedgeMesh(GLMesh& mesh, float frontHeight, float backHeight)
-{
-    if (frontHeight < 0 || frontHeight > 1 || backHeight < 0 || backHeight > 1)
-    {
-        throw invalid_argument("Height must be between 0 and 1");
-    }
-
-    float fh = -1 + (frontHeight * 2), bh = -1 + (backHeight * 2);
-
-    GLfloat verts[] = {
-        // Positions           // Normals            //Textures
-        // ----------------------------------------------------
-        // Back Face          Negative Z Normal     Texture Coords.
-       -1.0f, -1.0f, -1.0f,   0.0f,  0.0f, -1.0f,   0.0f, 0.0f,
-        1.0f, -1.0f, -1.0f,   0.0f,  0.0f, -1.0f,   1.0f, 0.0f,
-        1.0f,  bh,   -1.0f,   0.0f,  0.0f, -1.0f,   1.0f, 1.0f,
-        1.0f,  bh,   -1.0f,   0.0f,  0.0f, -1.0f,   1.0f, 1.0f,
-       -1.0f,  bh,   -1.0f,   0.0f,  0.0f, -1.0f,   0.0f, 1.0f,
-       -1.0f, -1.0f, -1.0f,   0.0f,  0.0f, -1.0f,   0.0f, 0.0f,
-
-        // Front Face         Positive Z Normal     Texture Coords.
-       -1.0f, -1.0f,  1.0f,   0.0f,  0.0f,  1.0f,   0.0f, 0.0f,
-        1.0f, -1.0f,  1.0f,   0.0f,  0.0f,  1.0f,   1.0f, 0.0f,
-        1.0f,  fh,    1.0f,   0.0f,  0.0f,  1.0f,   1.0f, 1.0f,
-        1.0f,  fh,    1.0f,   0.0f,  0.0f,  1.0f,   1.0f, 1.0f,
-       -1.0f,  fh,    1.0f,   0.0f,  0.0f,  1.0f,   0.0f, 1.0f,
-       -1.0f, -1.0f,  1.0f,   0.0f,  0.0f,  1.0f,   0.0f, 0.0f,
-
-        // Left Face           Negative X Normal    Texture Coords.
-       -1.0f,  fh,    1.0f,  -1.0f,  0.0f,  0.0f,   1.0f, 0.0f,
-       -1.0f,  bh,   -1.0f,  -1.0f,  0.0f,  0.0f,   1.0f, 1.0f,
-       -1.0f, -1.0f, -1.0f,  -1.0f,  0.0f,  0.0f,   0.0f, 1.0f,
-       -1.0f, -1.0f, -1.0f,  -1.0f,  0.0f,  0.0f,   0.0f, 1.0f,
-       -1.0f, -1.0f,  1.0f,  -1.0f,  0.0f,  0.0f,   0.0f, 0.0f,
-       -1.0f,  fh,    1.0f,  -1.0f,  0.0f,  0.0f,   1.0f, 0.0f,
-
-        // Right Face         Positive X Normal     Texture Coords.
-        1.0f,  fh,    1.0f,   1.0f,  0.0f,  0.0f,   1.0f, 0.0f,
-        1.0f,  bh,   -1.0f,   1.0f,  0.0f,  0.0f,   1.0f, 1.0f,
-        1.0f, -1.0f, -1.0f,   1.0f,  0.0f,  0.0f,   0.0f, 1.0f,
-        1.0f, -1.0f, -1.0f,   1.0f,  0.0f,  0.0f,   0.0f, 1.0f,
-        1.0f, -1.0f,  1.0f,   1.0f,  0.0f,  0.0f,   0.0f, 0.0f,
-        1.0f,  fh,    1.0f,   1.0f,  0.0f,  0.0f,   1.0f, 0.0f,
-
-        // Bottom Face        Negative Y Normal     Texture Coords.
-       -1.0f, -1.0f, -1.0f,   0.0f, -1.0f,  0.0f,   0.0f, 1.0f,
-        1.0f, -1.0f, -1.0f,   0.0f, -1.0f,  0.0f,   1.0f, 1.0f,
-        1.0f, -1.0f,  1.0f,   0.0f, -1.0f,  0.0f,   1.0f, 0.0f,
-        1.0f, -1.0f,  1.0f,   0.0f, -1.0f,  0.0f,   1.0f, 0.0f,
-       -1.0f, -1.0f,  1.0f,   0.0f, -1.0f,  0.0f,   0.0f, 0.0f,
-       -1.0f, -1.0f, -1.0f,   0.0f, -1.0f,  0.0f,   0.0f, 1.0f,
-
-        // Top Face           Positive Y Normal     Texture Coords.
-       -1.0f,  bh,   -1.0f,   0.0f,  1.0f,  0.0f,   0.0f, 1.0f,
-        1.0f,  bh,   -1.0f,   0.0f,  1.0f,  0.0f,   1.0f, 1.0f,
-        1.0f,  fh,    1.0f,   0.0f,  1.0f,  0.0f,   1.0f, 0.0f,
-        1.0f,  fh,    1.0f,   0.0f,  1.0f,  0.0f,   1.0f, 0.0f,
-       -1.0f,  fh,    1.0f,   0.0f,  1.0f,  0.0f,   0.0f, 0.0f,
-       -1.0f,  bh,   -1.0f,   0.0f,  1.0f,  0.0f,   0.0f, 1.0f
-    };
-
-    const GLuint floatsPerVertex = 3;
-    const GLuint floatsPerNormal = 3;
-    const GLuint floatsPerUV = 2;
-
-    mesh.nIndices = sizeof(verts) / (sizeof(verts[0]) * (floatsPerVertex + floatsPerNormal + floatsPerUV));
-
-    glGenVertexArrays(1, &mesh.vao); // we can also generate multiple VAOs or buffers at the same time
-    glBindVertexArray(mesh.vao);
-
-    // Create 2 buffers: first one for the vertex data; second one for the indices
-    glGenBuffers(1, &mesh.vbos[0]);
-    glBindBuffer(GL_ARRAY_BUFFER, mesh.vbos[0]); // Activates the buffer
-    glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW); // Sends vertex or coordinate data to the GPU
-
-    // Strides between vertex coordinates is 6 (x, y, z, r, g, b, a). A tightly packed stride is 0.
-    GLint stride = sizeof(float) * (floatsPerVertex + floatsPerNormal + floatsPerUV);// The number of floats before each
-
-    // Create Vertex Attribute Pointers
-    glVertexAttribPointer(0, floatsPerVertex, GL_FLOAT, GL_FALSE, stride, 0);
-    glEnableVertexAttribArray(0);
-
-    glVertexAttribPointer(1, floatsPerNormal, GL_FLOAT, GL_FALSE, stride, (void*)(sizeof(float) * floatsPerVertex));
     glEnableVertexAttribArray(1);
 
     glVertexAttribPointer(2, floatsPerUV, GL_FLOAT, GL_FALSE, stride, (void*)(sizeof(float) * (floatsPerVertex + floatsPerNormal)));
