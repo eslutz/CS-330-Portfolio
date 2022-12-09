@@ -761,7 +761,7 @@ void URender()
     glDrawElements(GL_TRIANGLES, gCylinderMesh.nIndices, GL_UNSIGNED_SHORT, NULL);
 
     // MOUSE PAD: draw mouse pad
-    //----------------
+    //--------------------------
     // Activate the VBOs contained within the mesh's VAO
     glBindVertexArray(gPlaneMesh.vao);
 
@@ -813,7 +813,7 @@ void URender()
     glDrawElements(GL_TRIANGLES, gPlaneMesh.nIndices, GL_UNSIGNED_SHORT, NULL);
 
     // INFINITY CUBE: draw infinity cube
-    //----------------
+    //----------------------------------
     // Activate the VBOs contained within the mesh's VAO
     glBindVertexArray(gCubeMesh.vao);
 
@@ -822,7 +822,7 @@ void URender()
 
     // Set scale, rotation, and translation
     scale = glm::scale(glm::vec3(0.375f, 0.375f, 0.375f));
-    rotation = glm::rotate(glm::radians(25.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    rotation = glm::rotate(glm::radians(35.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     translation = glm::translate(glm::vec3(-6.0f, -0.6249f, -1.0f));
     model = translation * rotation * scale; // Creates transform matrix
 
@@ -865,7 +865,7 @@ void URender()
     glDrawArrays(GL_TRIANGLES, 0, gCubeMesh.nIndices);
 
     // WHITEBOARD: draw whiteboard
-    //----------------
+    //----------------------------
     // Activate the VBOs contained within the mesh's VAO
     glBindVertexArray(gWedgeMesh.vao);
 
@@ -874,7 +874,7 @@ void URender()
 
     // Set scale, rotation, and translation
     scale = glm::scale(glm::vec3(4.5f, 0.625f, 1.5f));
-    translation = glm::translate(glm::vec3(0.0f, -0.3749, -2.0f));
+    translation = glm::translate(glm::vec3(0.0f, -0.3749f, -2.0f));
     model = translation * scale; // Creates transform matrix
 
     // Reference matrix uniforms from the shader program
@@ -915,8 +915,8 @@ void URender()
     // Draws the triangles
     glDrawArrays(GL_TRIANGLES, 0, gWedgeMesh.nIndices);
 
-    // Keyboard: draw keyboard
-    //----------------
+    // KEYBOARD: draw keyboard
+    //------------------------
     // Activate the VBOs contained within the mesh's VAO
     glBindVertexArray(gWedgeMesh.vao);
 
@@ -925,8 +925,60 @@ void URender()
 
     // Set scale, rotation, and translation
     scale = glm::scale(glm::vec3(4.125f, 0.125f, 1.125f));
-    translation = glm::translate(glm::vec3(-0.75f, -0.8749, 2.0f));
+    translation = glm::translate(glm::vec3(-0.75f, -0.8749f, 2.0f));
     model = translation * scale; // Creates transform matrix
+
+    // Reference matrix uniforms from the shader program
+    viewLoc = glGetUniformLocation(gProgramId, "view");
+    projLoc = glGetUniformLocation(gProgramId, "projection");
+    modelLoc = glGetUniformLocation(gProgramId, "model");
+
+    // Pass matrix data to the shader program's matrix uniforms
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+    glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+
+    // Reference matrix uniforms
+    lightColorLoc = glGetUniformLocation(gProgramId, "lightColor");
+    lightPositionLoc = glGetUniformLocation(gProgramId, "lightPos");
+    viewPositionLoc = glGetUniformLocation(gProgramId, "viewPosition");
+    lightColorLoc2 = glGetUniformLocation(gProgramId, "lightColor2");
+    lightPositionLoc2 = glGetUniformLocation(gProgramId, "lightPos2");
+    viewPositionLoc2 = glGetUniformLocation(gProgramId, "viewPosition2");
+
+    // Pass color, light, and camera data to the shader program's corresponding uniforms
+    glUniform3f(lightColorLoc, gLightColor.r, gLightColor.g, gLightColor.b);
+    glUniform3f(lightPositionLoc, gLightPosition.x, gLightPosition.y, gLightPosition.z);
+    glUniform3f(viewPositionLoc, cameraPosition.x, cameraPosition.y, cameraPosition.z);
+    glUniform3f(lightColorLoc2, gLightColor2.r, gLightColor2.g, gLightColor2.b);
+    glUniform3f(lightPositionLoc2, gLightPosition2.x, gLightPosition2.y, gLightPosition2.z);
+    glUniform3f(viewPositionLoc2, cameraPosition.x, cameraPosition.y, cameraPosition.z);
+
+    // Set texture scale
+    uvScale = glm::vec2(1.0f, 1.0f);
+    uvScaleLoc = glGetUniformLocation(gProgramId, "uvScale");
+    glUniform2fv(uvScaleLoc, 1, glm::value_ptr(uvScale));
+
+    // Bind textures on corresponding texture units
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, gInfinityCubeTextureId);
+
+    // Draws the triangles
+    glDrawArrays(GL_TRIANGLES, 0, gWedgeMesh.nIndices);
+
+    // TRACKPAD: draw trackpad
+    //------------------------
+    // Activate the VBOs contained within the mesh's VAO
+    glBindVertexArray(gWedgeMesh.vao);
+
+    // Set the shader to be used
+    glUseProgram(gProgramId);
+
+    // Set scale, rotation, and translation
+    scale = glm::scale(glm::vec3(1.5625f, 0.125f, 1.125f));
+    rotation = glm::rotate(glm::radians(20.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    translation = glm::translate(glm::vec3(-7.5f, -0.8749f, 1.5f));
+    model = translation * rotation * scale; // Creates transform matrix
 
     // Reference matrix uniforms from the shader program
     viewLoc = glGetUniformLocation(gProgramId, "view");
