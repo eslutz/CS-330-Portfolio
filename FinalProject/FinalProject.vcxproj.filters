@@ -15,24 +15,27 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="module_06_milestone.cpp">
+    <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="..\textures\desk.jpg">
-      <Filter>TextureFiles</Filter>
-    </Image>
-    <Image Include="..\textures\black_mesh.jpg">
-      <Filter>TextureFiles</Filter>
-    </Image>
-    <Image Include="..\textures\black_rubber.jpg">
-      <Filter>TextureFiles</Filter>
-    </Image>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\includes\camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\textures\black_mesh.png">
+      <Filter>TextureFiles</Filter>
+    </Image>
+    <Image Include="..\textures\black_rubber.png">
+      <Filter>TextureFiles</Filter>
+    </Image>
+    <Image Include="..\textures\desk.png">
+      <Filter>TextureFiles</Filter>
+    </Image>
+    <Image Include="..\textures\mouse_pad.png">
+      <Filter>TextureFiles</Filter>
+    </Image>
   </ItemGroup>
 </Project>

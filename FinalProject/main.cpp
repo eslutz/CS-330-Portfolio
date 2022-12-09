@@ -1,5 +1,5 @@
 /*
- * Module 6 Milestone
+ * Final Project
  * Eric Slutz
  */
 
@@ -29,7 +29,7 @@ using namespace std; // Standard namespace
 namespace
 {
     // Macro for window title
-    const char* const WINDOW_TITLE = "Module 6 Milestone - HomePod mini on desk w/ textures & light";
+    const char* const WINDOW_TITLE = "Final Project - Desk with items";
 
     // Variables for window width and height
     const int WINDOW_WIDTH = 800;
@@ -55,6 +55,7 @@ namespace
     GLuint gDeskTextureId;
     GLuint gMeshFabricTextureId;
     GLuint gRubberBaseTextureId;
+    GLuint gMousePadTextureId;
     // Shader programs
     GLuint gProgramId;
     GLuint gLampProgramId;
@@ -279,7 +280,7 @@ int main(int argc, char* argv[])
     }
 
     // Load desk texture
-    const char* texFilename = "../textures/desk.jpg";
+    const char* texFilename = "../textures/desk.png";
     if (!UCreateTexture(texFilename, gDeskTextureId))
     {
         cout << "Failed to load texture " << texFilename << endl;
@@ -289,7 +290,7 @@ int main(int argc, char* argv[])
     glUniform1i(glGetUniformLocation(gProgramId, "deskTexture"), 0); // Set the texture as texture unit 0
 
     // Load mesh fabric texture
-    texFilename = "../textures/black_mesh.jpg";
+    texFilename = "../textures/black_mesh.png";
     if (!UCreateTexture(texFilename, gMeshFabricTextureId))
     {
         cout << "Failed to load texture " << texFilename << endl;
@@ -298,8 +299,8 @@ int main(int argc, char* argv[])
     glUseProgram(gProgramId); // tell opengl texture unit sample belongs to
     glUniform1i(glGetUniformLocation(gProgramId, "meshFabricTexture"), 0); // Set the texture as texture unit 0
 
-    // Load mesh fabric texture
-    texFilename = "../textures/black_rubber.jpg";
+    // Load black rubber texture
+    texFilename = "../textures/black_rubber.png";
     if (!UCreateTexture(texFilename, gRubberBaseTextureId))
     {
         cout << "Failed to load texture " << texFilename << endl;
@@ -307,6 +308,16 @@ int main(int argc, char* argv[])
     }
     glUseProgram(gProgramId); // tell opengl texture unit sample belongs to
     glUniform1i(glGetUniformLocation(gProgramId, "rubberBaseTexture"), 0); // Set the texture as texture unit 0
+
+    // Load mouse pad texture
+    texFilename = "../textures/mouse_pad.png";
+    if (!UCreateTexture(texFilename, gMousePadTextureId))
+    {
+        cout << "Failed to load texture " << texFilename << endl;
+        return EXIT_FAILURE;
+    }
+    glUseProgram(gProgramId); // tell opengl texture unit sample belongs to
+    glUniform1i(glGetUniformLocation(gProgramId, "mousePadTexture"), 0); // Set the texture as texture unit 0
 
     // Sets the background color of the window (it will be implicitely used by glClear)
     glClearColor(0.412f, 0.412f, 0.412f, 1.0f);
@@ -627,7 +638,7 @@ void URender()
     // Draws the triangles
     glDrawElements(GL_TRIANGLES, gPlaneMesh.nIndices, GL_UNSIGNED_SHORT, NULL);
 
-    // HomePod: draw speaker
+    // HOMEPOD: draw speaker
     //----------------------
     // Activate the VBOs contained within the mesh's VAO
     glBindVertexArray(gSphereMesh.vao);
@@ -678,7 +689,7 @@ void URender()
     // Draws the triangles
     glDrawElements(GL_TRIANGLES, gSphereMesh.nIndices, GL_UNSIGNED_SHORT, NULL);
 
-    // HomePod: draw base
+    // HOMEPOD: draw base
     //-------------------
     // Activate the VBOs contained within the mesh's VAO
     glBindVertexArray(gCylinderMesh.vao);
@@ -729,6 +740,58 @@ void URender()
 
     // Draws the triangles
     glDrawElements(GL_TRIANGLES, gCylinderMesh.nIndices, GL_UNSIGNED_SHORT, NULL);
+
+    // MOUSE PAD: draw mouse pad
+    //----------------
+    // Activate the VBOs contained within the mesh's VAO
+    glBindVertexArray(gPlaneMesh.vao);
+
+    // Set the shader to be used
+    glUseProgram(gProgramId);
+
+    // Set scale, rotation, and translation
+    scale = glm::scale(glm::vec3(1.5f, 1.0f, 1.0f));
+    rotation = glm::rotate(glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    translation = glm::translate(glm::vec3(5.0f, -0.999f, 2.0f));
+    model = translation * rotation * scale; // Creates transform matrix
+
+    // Reference matrix uniforms from the shader program
+    viewLoc = glGetUniformLocation(gProgramId, "view");
+    projLoc = glGetUniformLocation(gProgramId, "projection");
+    modelLoc = glGetUniformLocation(gProgramId, "model");
+
+    // Pass matrix data to the shader program's matrix uniforms
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+    glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+
+    // Reference matrix uniforms
+    lightColorLoc = glGetUniformLocation(gProgramId, "lightColor");
+    lightPositionLoc = glGetUniformLocation(gProgramId, "lightPos");
+    viewPositionLoc = glGetUniformLocation(gProgramId, "viewPosition");
+    lightColorLoc2 = glGetUniformLocation(gProgramId, "lightColor2");
+    lightPositionLoc2 = glGetUniformLocation(gProgramId, "lightPos2");
+    viewPositionLoc2 = glGetUniformLocation(gProgramId, "viewPosition2");
+
+    // Pass color, light, and camera data to the shader program's corresponding uniforms
+    glUniform3f(lightColorLoc, gLightColor.r, gLightColor.g, gLightColor.b);
+    glUniform3f(lightPositionLoc, gLightPosition.x, gLightPosition.y, gLightPosition.z);
+    glUniform3f(viewPositionLoc, cameraPosition.x, cameraPosition.y, cameraPosition.z);
+    glUniform3f(lightColorLoc2, gLightColor2.r, gLightColor2.g, gLightColor2.b);
+    glUniform3f(lightPositionLoc2, gLightPosition2.x, gLightPosition2.y, gLightPosition2.z);
+    glUniform3f(viewPositionLoc2, cameraPosition.x, cameraPosition.y, cameraPosition.z);
+
+    // Set texture scale
+    uvScale = glm::vec2(1.0f, 1.0f);
+    uvScaleLoc = glGetUniformLocation(gProgramId, "uvScale");
+    glUniform2fv(uvScaleLoc, 1, glm::value_ptr(uvScale));
+
+    // Bind textures on corresponding texture units
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, gMousePadTextureId);
+
+    // Draws the triangles
+    glDrawElements(GL_TRIANGLES, gPlaneMesh.nIndices, GL_UNSIGNED_SHORT, NULL);
 
     // LAMP 1: draw lamp
     //----------------
