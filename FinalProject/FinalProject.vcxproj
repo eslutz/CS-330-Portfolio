@@ -139,10 +139,14 @@
     <ClInclude Include="..\includes\camera.h" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="..\textures\aluminum.png" />
     <Image Include="..\textures\black_mesh.png" />
     <Image Include="..\textures\black_rubber.png" />
     <Image Include="..\textures\desk.png" />
+    <Image Include="..\textures\infinity_cube.png" />
+    <Image Include="..\textures\keyboard.png" />
     <Image Include="..\textures\mouse_pad.png" />
+    <Image Include="..\textures\trackpad.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

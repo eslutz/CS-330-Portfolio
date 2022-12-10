@@ -49,6 +49,7 @@ namespace
     GLMesh gCubeMesh;
     GLMesh gCylinderMesh;
     GLMesh gPlaneMesh;
+    GLMesh gPlaneAngledMesh;
     GLMesh gPyramidMesh;
     GLMesh gSphereMesh;
     GLMesh gWedgeMesh;
@@ -58,13 +59,17 @@ namespace
     GLuint gRubberBaseTextureId;
     GLuint gMousePadTextureId;
     GLuint gInfinityCubeTextureId;
+    GLuint gAluminumTextureId;
+    GLuint gKeyboardTextureId;
+    GLuint gTrackpadTextureId;
+    GLuint gWhiteboardTextureId;
     // Shader programs
     GLuint gProgramId;
     GLuint gLampProgramId;
 
     // camera
     Camera gCamera(glm::vec3(0.0f, 3.0f, 18.0f));
-    
+
     float gLastX = WINDOW_WIDTH / 2.0f;
     float gLastY = WINDOW_HEIGHT / 2.0f;
     bool gFirstMouse = true;
@@ -102,13 +107,13 @@ void UProcessInput(GLFWwindow* window);
 void UMousePositionCallback(GLFWwindow* window, double xpos, double ypos);
 void UMouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 void UMouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
-void UCreateCubeMesh(GLMesh& mesh, float frontHeight = 1, float backHeight = 1);
+void UCreateCubeMesh(GLMesh& mesh, float frontHeight = 1.0f, float backHeight = 1.0f);
 void UCreateCylinderMesh(GLMesh& mesh);
-void UCreatePlaneMesh(GLMesh& mesh);
+void UCreatePlaneMesh(GLMesh& mesh, float frontHeight = 0.5f, float backHeight = 0.5f);
 void UCreatePyramidMesh(GLMesh& mesh);
 void UCreateSphereMesh(GLMesh& mesh);
 void UDestroyMesh(GLMesh& mesh);
-bool UCreateTexture(const char* filename, GLuint& textureId);
+bool UCreateTexture(const char* filename, GLuint& textureId, bool flipImage = true);
 void UDestroyTexture(GLuint textureId);
 void URender();
 bool UCreateShaderProgram(const char* vtxShaderSource, const char* fragShaderSource, GLuint& programId);
@@ -118,123 +123,123 @@ void UDestroyShaderProgram(GLuint programId);
 /* Vertex Shader Source Code */
 const GLchar* vertexShaderSource = GLSL(440,
     layout(location = 0) in vec3 position; // Vertex data from Vertex Attrib Pointer 0
-    layout(location = 1) in vec3 normal; // Normal data from Vertex Attrib Pointer 1
-    layout(location = 2) in vec2 textureCoordinate; // Texture data from Vertex Attrib Pointer 2
+layout(location = 1) in vec3 normal; // Normal data from Vertex Attrib Pointer 1
+layout(location = 2) in vec2 textureCoordinate; // Texture data from Vertex Attrib Pointer 2
 
-    out vec3 vertexFragmentPos; // For outgoing color / pixels to fragment shader
-    out vec3 vertexNormal; // For outgoing normals to fragment shader
-    out vec2 vertexTextureCoordinate; // For outgoing texture coordinate
+out vec3 vertexFragmentPos; // For outgoing color / pixels to fragment shader
+out vec3 vertexNormal; // For outgoing normals to fragment shader
+out vec2 vertexTextureCoordinate; // For outgoing texture coordinate
 
-    // Global variables for the  transform matrices
-    uniform mat4 model;
-    uniform mat4 view;
-    uniform mat4 projection;
+// Global variables for the  transform matrices
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
 
-    void main()
-    {
-        gl_Position = projection * view * model * vec4(position, 1.0f); // Transforms vertices to clip coordinates
-        vertexFragmentPos = vec3(model * vec4(position, 1.0f)); // Gets fragment / pixel position in world space only (exclude view and projection)
-        vertexNormal = mat3(transpose(inverse(model))) * normal; // Gets normal vectors in world space only and exclude normal translation properties
-        vertexTextureCoordinate = textureCoordinate; // Gets texture coordinate
-    }
+void main()
+{
+    gl_Position = projection * view * model * vec4(position, 1.0f); // Transforms vertices to clip coordinates
+    vertexFragmentPos = vec3(model * vec4(position, 1.0f)); // Gets fragment / pixel position in world space only (exclude view and projection)
+    vertexNormal = mat3(transpose(inverse(model))) * normal; // Gets normal vectors in world space only and exclude normal translation properties
+    vertexTextureCoordinate = textureCoordinate; // Gets texture coordinate
+}
 );
 
 /* Fragment Shader Source Code */
 const GLchar* fragmentShaderSource = GLSL(440,
     in vec3 vertexFragmentPos; // For incoming fragment position
-    in vec3 vertexNormal; // For incoming normals
-    in vec2 vertexTextureCoordinate; // For incoming texture coordinate
+in vec3 vertexNormal; // For incoming normals
+in vec2 vertexTextureCoordinate; // For incoming texture coordinate
 
-    out vec4 fragmentColor; // For outgoing cube color to the GPU
+out vec4 fragmentColor; // For outgoing cube color to the GPU
 
-    // Uniform / Global variables for object color, light color, light position, and camera/view position
-    uniform vec3 lightColor;
-    uniform vec3 lightColor2;
-    uniform vec3 lightPos;
-    uniform vec3 lightPos2;
-    uniform vec3 viewPosition;
-    uniform vec3 viewPosition2;
-    uniform sampler2D uTexture; // Useful when working with multiple textures
-    uniform vec2 uvScale;
+// Uniform / Global variables for object color, light color, light position, and camera/view position
+uniform vec3 lightColor;
+uniform vec3 lightColor2;
+uniform vec3 lightPos;
+uniform vec3 lightPos2;
+uniform vec3 viewPosition;
+uniform vec3 viewPosition2;
+uniform sampler2D uTexture; // Useful when working with multiple textures
+uniform vec2 uvScale;
 
-    void main()
-    {
-        /* Phong lighting model calculations to generate ambient, diffuse, and specular components */
+void main()
+{
+    /* Phong lighting model calculations to generate ambient, diffuse, and specular components */
 
-        // LAMP 1: Calculate ambient lighting
-        float ambientStrength = 0.8f; // Set ambient or global lighting strength 80%
-        vec3 ambient = ambientStrength * lightColor; // Generate ambient light color
+    // LAMP 1: Calculate ambient lighting
+    float ambientStrength = 0.8f; // Set ambient or global lighting strength 80%
+    vec3 ambient = ambientStrength * lightColor; // Generate ambient light color
 
-        // LAMP 2: Calculate ambient lighting
-        float ambientStrength2 = 0.7f; // Set ambient or global lighting strength 70%
-        vec3 ambient2 = ambientStrength2 * lightColor2; // Generate ambient light color
+    // LAMP 2: Calculate ambient lighting
+    float ambientStrength2 = 0.7f; // Set ambient or global lighting strength 70%
+    vec3 ambient2 = ambientStrength2 * lightColor2; // Generate ambient light color
 
-        // LAMP 1: Calculate diffuse lighting
-        vec3 norm = normalize(vertexNormal); // Normalize vectors to 1 unit
-        vec3 lightDirection = normalize(lightPos - vertexFragmentPos); // Calculate distance (light direction) between light source and fragments/pixels on cube
-        float impact = max(dot(norm, lightDirection), 0.0);// Calculate diffuse impact by generating dot product of normal and light
-        vec3 diffuse = impact * lightColor; // Generate diffuse light color
+    // LAMP 1: Calculate diffuse lighting
+    vec3 norm = normalize(vertexNormal); // Normalize vectors to 1 unit
+    vec3 lightDirection = normalize(lightPos - vertexFragmentPos); // Calculate distance (light direction) between light source and fragments/pixels on cube
+    float impact = max(dot(norm, lightDirection), 0.0);// Calculate diffuse impact by generating dot product of normal and light
+    vec3 diffuse = impact * lightColor; // Generate diffuse light color
 
-        // LAMP 2: Calculate diffuse lighting
-        vec3 norm2 = normalize(vertexNormal); // Normalize vectors to 1 unit
-        vec3 lightDirection2 = normalize(lightPos2 - vertexFragmentPos); // Calculate distance (light direction) between light source and fragments/pixels on cube
-        float impact2 = max(dot(norm2, lightDirection2), 0.0);// Calculate diffuse impact by generating dot product of normal and light
-        vec3 diffuse2 = impact2 * lightColor2; // Generate diffuse light color
+    // LAMP 2: Calculate diffuse lighting
+    vec3 norm2 = normalize(vertexNormal); // Normalize vectors to 1 unit
+    vec3 lightDirection2 = normalize(lightPos2 - vertexFragmentPos); // Calculate distance (light direction) between light source and fragments/pixels on cube
+    float impact2 = max(dot(norm2, lightDirection2), 0.0);// Calculate diffuse impact by generating dot product of normal and light
+    vec3 diffuse2 = impact2 * lightColor2; // Generate diffuse light color
 
-        // LAMP 1: Calculate specular lighting
-        float specularIntensity = 0.1f; // Set specular light strength
-        float highlightSize = 16.0f; // Set specular highlight size
-        vec3 viewDir = normalize(viewPosition - vertexFragmentPos); // Calculate view direction
-        vec3 reflectDir = reflect(-lightDirection, norm);// Calculate reflection vector
+    // LAMP 1: Calculate specular lighting
+    float specularIntensity = 0.1f; // Set specular light strength
+    float highlightSize = 16.0f; // Set specular highlight size
+    vec3 viewDir = normalize(viewPosition - vertexFragmentPos); // Calculate view direction
+    vec3 reflectDir = reflect(-lightDirection, norm);// Calculate reflection vector
 
-        // LAMP 2: Calculate specular lighting
-        float specularIntensity2 = 0.1f; // Set specular light strength
-        float highlightSize2 = 16.0f; // Set specular highlight size
-        vec3 viewDir2 = normalize(viewPosition2 - vertexFragmentPos); // Calculate view direction
-        vec3 reflectDir2 = reflect(-lightDirection2, norm2);// Calculate reflection vector
+    // LAMP 2: Calculate specular lighting
+    float specularIntensity2 = 0.1f; // Set specular light strength
+    float highlightSize2 = 16.0f; // Set specular highlight size
+    vec3 viewDir2 = normalize(viewPosition2 - vertexFragmentPos); // Calculate view direction
+    vec3 reflectDir2 = reflect(-lightDirection2, norm2);// Calculate reflection vector
 
-        // LAMP 1: Calculate specular component
-        float specularComponent = pow(max(dot(viewDir, reflectDir), 0.0), highlightSize);
-        vec3 specular = specularIntensity * specularComponent * lightColor;
+    // LAMP 1: Calculate specular component
+    float specularComponent = pow(max(dot(viewDir, reflectDir), 0.0), highlightSize);
+    vec3 specular = specularIntensity * specularComponent * lightColor;
 
-        // LAMP 2: Calculate specular component
-        float specularComponent2 = pow(max(dot(viewDir2, reflectDir2), 0.0), highlightSize2);
-        vec3 specular2 = specularIntensity2 * specularComponent2 * lightColor2;
+    // LAMP 2: Calculate specular component
+    float specularComponent2 = pow(max(dot(viewDir2, reflectDir2), 0.0), highlightSize2);
+    vec3 specular2 = specularIntensity2 * specularComponent2 * lightColor2;
 
-        // Texture holds the color to be used for all three components
-        vec4 textureColor = texture(uTexture, vertexTextureCoordinate * uvScale);
+    // Texture holds the color to be used for all three components
+    vec4 textureColor = texture(uTexture, vertexTextureCoordinate * uvScale);
 
-        // Calculate phong result
-        vec3 phong = (ambient + ambient2 + diffuse + diffuse2 + specular + specular2) * textureColor.xyz;
+    // Calculate phong result
+    vec3 phong = (ambient + ambient2 + diffuse + diffuse2 + specular + specular2) * textureColor.xyz;
 
-        // Send lighting results to GPU
-        fragmentColor = vec4(phong, 1.0);
-    }
+    // Send lighting results to GPU
+    fragmentColor = vec4(phong, 1.0);
+}
 );
 
 /* Lamp Shader Source Code */
 const GLchar* lampVertexShaderSource = GLSL(440,
     layout(location = 0) in vec3 position; // Vertex data from Vertex Attrib Pointer 0
 
-    // Uniform / Global variables for the  transform matrices
-    uniform mat4 model;
-    uniform mat4 view;
-    uniform mat4 projection;
+// Uniform / Global variables for the  transform matrices
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
 
-    void main()
-    {
-        gl_Position = projection * view * model * vec4(position, 1.0f); // Transforms vertices into clip coordinates
-    }
-    );
+void main()
+{
+    gl_Position = projection * view * model * vec4(position, 1.0f); // Transforms vertices into clip coordinates
+}
+);
 
-    /* Lamp Fragment Shader Source Code */
-    const GLchar* lampFragmentShaderSource = GLSL(440,
-        out vec4 fragmentColor; // For outgoing lamp color (smaller cube) to the GPU
+/* Lamp Fragment Shader Source Code */
+const GLchar* lampFragmentShaderSource = GLSL(440,
+    out vec4 fragmentColor; // For outgoing lamp color (smaller cube) to the GPU
 
-    void main()
-    {
-        fragmentColor = vec4(1.0f); // Set color to white (1.0f,1.0f,1.0f) with alpha 1.0
-    }
+void main()
+{
+    fragmentColor = vec4(1.0f); // Set color to white (1.0f,1.0f,1.0f) with alpha 1.0
+}
 );
 
 // Images are loaded with Y axis going down, but OpenGL's Y axis goes up, so let's flip it
@@ -269,6 +274,7 @@ int main(int argc, char* argv[])
     UCreateCubeMesh(gWedgeMesh, 0.4f, 1.0f);
     UCreateCylinderMesh(gCylinderMesh);
     UCreatePlaneMesh(gPlaneMesh);
+    UCreatePlaneMesh(gPlaneAngledMesh, 0.4f, 1.0f);
     UCreateSphereMesh(gSphereMesh);
 
     // Create the shader programs
@@ -315,7 +321,7 @@ int main(int argc, char* argv[])
 
     // Load mouse pad texture
     texFilename = "../textures/mouse_pad.png";
-    if (!UCreateTexture(texFilename, gMousePadTextureId))
+    if (!UCreateTexture(texFilename, gMousePadTextureId, false))
     {
         cout << "Failed to load texture " << texFilename << endl;
         return EXIT_FAILURE;
@@ -323,7 +329,7 @@ int main(int argc, char* argv[])
     glUseProgram(gProgramId); // tell opengl texture unit sample belongs to
     glUniform1i(glGetUniformLocation(gProgramId, "mousePadTexture"), 0); // Set the texture as texture unit 0
 
-    // Load mouse pad texture
+    // Load infinity cube texture
     texFilename = "../textures/infinity_cube.png";
     if (!UCreateTexture(texFilename, gInfinityCubeTextureId))
     {
@@ -332,6 +338,46 @@ int main(int argc, char* argv[])
     }
     glUseProgram(gProgramId); // tell opengl texture unit sample belongs to
     glUniform1i(glGetUniformLocation(gProgramId, "infinityCubeTexture"), 0); // Set the texture as texture unit 0
+
+    // Load aluminum texture
+    texFilename = "../textures/aluminum.png";
+    if (!UCreateTexture(texFilename, gAluminumTextureId))
+    {
+        cout << "Failed to load texture " << texFilename << endl;
+        return EXIT_FAILURE;
+    }
+    glUseProgram(gProgramId); // tell opengl texture unit sample belongs to
+    glUniform1i(glGetUniformLocation(gProgramId, "aluminumTexture"), 0); // Set the texture as texture unit 0
+
+    // Load keyboard texture
+    texFilename = "../textures/keyboard.png";
+    if (!UCreateTexture(texFilename, gKeyboardTextureId, false))
+    {
+        cout << "Failed to load texture " << texFilename << endl;
+        return EXIT_FAILURE;
+    }
+    glUseProgram(gProgramId); // tell opengl texture unit sample belongs to
+    glUniform1i(glGetUniformLocation(gProgramId, "keyboardTexture"), 0); // Set the texture as texture unit 0
+
+    // Load trackpad texture
+    texFilename = "../textures/trackpad.png";
+    if (!UCreateTexture(texFilename, gTrackpadTextureId, false))
+    {
+        cout << "Failed to load texture " << texFilename << endl;
+        return EXIT_FAILURE;
+    }
+    glUseProgram(gProgramId); // tell opengl texture unit sample belongs to
+    glUniform1i(glGetUniformLocation(gProgramId, "trackpadTexture"), 0); // Set the texture as texture unit 0
+
+    // Load whiteboard texture
+    texFilename = "../textures/whiteboard.png";
+    if (!UCreateTexture(texFilename, gWhiteboardTextureId, false))
+    {
+        cout << "Failed to load texture " << texFilename << endl;
+        return EXIT_FAILURE;
+    }
+    glUseProgram(gProgramId); // tell opengl texture unit sample belongs to
+    glUniform1i(glGetUniformLocation(gProgramId, "whiteboardTexture"), 0); // Set the texture as texture unit 0
 
     // Sets the background color of the window (it will be implicitely used by glClear)
     glClearColor(0.412f, 0.412f, 0.412f, 1.0f);
@@ -360,9 +406,10 @@ int main(int argc, char* argv[])
     UDestroyMesh(gCubeMesh);
     UDestroyMesh(gCylinderMesh);
     UDestroyMesh(gPlaneMesh);
+    UDestroyMesh(gPlaneAngledMesh);
     UDestroyMesh(gSphereMesh);
     UDestroyMesh(gWedgeMesh);
-    
+
 
     // Release texture
     UDestroyTexture(gDeskTextureId);
@@ -370,6 +417,10 @@ int main(int argc, char* argv[])
     UDestroyTexture(gRubberBaseTextureId);
     UDestroyTexture(gMousePadTextureId);
     UDestroyTexture(gInfinityCubeTextureId);
+    UDestroyTexture(gAluminumTextureId);
+    UDestroyTexture(gKeyboardTextureId);
+    UDestroyTexture(gTrackpadTextureId);
+    UDestroyTexture(gWhiteboardTextureId);
 
     // Release shader program
     UDestroyShaderProgram(gProgramId);
@@ -719,7 +770,7 @@ void URender()
     // Set scale, rotation, and translation
     scale = glm::scale(glm::vec3(0.5f, 0.25f, 0.5f));
     rotation = glm::rotate(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    translation = glm::translate(glm::vec3(6.5f, -0.4999f, -2.0f));
+    translation = glm::translate(glm::vec3(6.5f, -0.499f, -2.0f));
     model = translation * rotation * scale; // Creates transform matrix
 
     // Reference matrix uniforms from the shader program
@@ -770,9 +821,8 @@ void URender()
 
     // Set scale, rotation, and translation
     scale = glm::scale(glm::vec3(2.25f, 1.0f, 2.0f));
-    rotation = glm::rotate(glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     translation = glm::translate(glm::vec3(6.0f, -0.999f, 1.9f));
-    model = translation * rotation * scale; // Creates transform matrix
+    model = translation * scale; // Creates transform matrix
 
     // Reference matrix uniforms from the shader program
     viewLoc = glGetUniformLocation(gProgramId, "view");
@@ -823,7 +873,7 @@ void URender()
     // Set scale, rotation, and translation
     scale = glm::scale(glm::vec3(0.375f, 0.375f, 0.375f));
     rotation = glm::rotate(glm::radians(35.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    translation = glm::translate(glm::vec3(-6.0f, -0.6249f, -1.0f));
+    translation = glm::translate(glm::vec3(-6.0f, -0.624f, -1.0f));
     model = translation * rotation * scale; // Creates transform matrix
 
     // Reference matrix uniforms from the shader program
@@ -874,7 +924,7 @@ void URender()
 
     // Set scale, rotation, and translation
     scale = glm::scale(glm::vec3(4.5f, 0.625f, 1.5f));
-    translation = glm::translate(glm::vec3(0.0f, -0.3749f, -2.0f));
+    translation = glm::translate(glm::vec3(0.0f, -0.374f, -2.0f));
     model = translation * scale; // Creates transform matrix
 
     // Reference matrix uniforms from the shader program
@@ -910,10 +960,61 @@ void URender()
 
     // Bind textures on corresponding texture units
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, gInfinityCubeTextureId);
+    glBindTexture(GL_TEXTURE_2D, gAluminumTextureId);
 
     // Draws the triangles
     glDrawArrays(GL_TRIANGLES, 0, gWedgeMesh.nIndices);
+
+    // WHITEBOARD: draw whiteboard surface
+    //------------------------------------
+    // Activate the VBOs contained within the mesh's VAO
+    glBindVertexArray(gPlaneAngledMesh.vao);
+
+    // Set the shader to be used
+    glUseProgram(gProgramId);
+
+    // Set scale, rotation, and translation
+    scale = glm::scale(glm::vec3(4.5f, 0.625f, 1.5f));
+    translation = glm::translate(glm::vec3(0.0f, -0.373f, -2.0f));
+    model = translation * scale; // Creates transform matrix
+
+    // Reference matrix uniforms from the shader program
+    viewLoc = glGetUniformLocation(gProgramId, "view");
+    projLoc = glGetUniformLocation(gProgramId, "projection");
+    modelLoc = glGetUniformLocation(gProgramId, "model");
+
+    // Pass matrix data to the shader program's matrix uniforms
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+    glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+
+    // Reference matrix uniforms
+    lightColorLoc = glGetUniformLocation(gProgramId, "lightColor");
+    lightPositionLoc = glGetUniformLocation(gProgramId, "lightPos");
+    viewPositionLoc = glGetUniformLocation(gProgramId, "viewPosition");
+    lightColorLoc2 = glGetUniformLocation(gProgramId, "lightColor2");
+    lightPositionLoc2 = glGetUniformLocation(gProgramId, "lightPos2");
+    viewPositionLoc2 = glGetUniformLocation(gProgramId, "viewPosition2");
+
+    // Pass color, light, and camera data to the shader program's corresponding uniforms
+    glUniform3f(lightColorLoc, gLightColor.r, gLightColor.g, gLightColor.b);
+    glUniform3f(lightPositionLoc, gLightPosition.x, gLightPosition.y, gLightPosition.z);
+    glUniform3f(viewPositionLoc, cameraPosition.x, cameraPosition.y, cameraPosition.z);
+    glUniform3f(lightColorLoc2, gLightColor2.r, gLightColor2.g, gLightColor2.b);
+    glUniform3f(lightPositionLoc2, gLightPosition2.x, gLightPosition2.y, gLightPosition2.z);
+    glUniform3f(viewPositionLoc2, cameraPosition.x, cameraPosition.y, cameraPosition.z);
+
+    // Set texture scale
+    uvScale = glm::vec2(1.0f, 1.0f);
+    uvScaleLoc = glGetUniformLocation(gProgramId, "uvScale");
+    glUniform2fv(uvScaleLoc, 1, glm::value_ptr(uvScale));
+
+    // Bind textures on corresponding texture units
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, gWhiteboardTextureId);
+
+    // Draws the triangles
+    glDrawElements(GL_TRIANGLES, gPlaneAngledMesh.nIndices, GL_UNSIGNED_SHORT, NULL);
 
     // KEYBOARD: draw keyboard
     //------------------------
@@ -925,7 +1026,7 @@ void URender()
 
     // Set scale, rotation, and translation
     scale = glm::scale(glm::vec3(4.125f, 0.125f, 1.125f));
-    translation = glm::translate(glm::vec3(-0.75f, -0.8749f, 2.0f));
+    translation = glm::translate(glm::vec3(-0.75f, -0.874f, 2.0f));
     model = translation * scale; // Creates transform matrix
 
     // Reference matrix uniforms from the shader program
@@ -961,10 +1062,61 @@ void URender()
 
     // Bind textures on corresponding texture units
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, gInfinityCubeTextureId);
+    glBindTexture(GL_TEXTURE_2D, gAluminumTextureId);
 
     // Draws the triangles
     glDrawArrays(GL_TRIANGLES, 0, gWedgeMesh.nIndices);
+
+    // KEYBOARD: draw keyboard surface
+    //--------------------------------
+    // Activate the VBOs contained within the mesh's VAO
+    glBindVertexArray(gPlaneAngledMesh.vao);
+
+    // Set the shader to be used
+    glUseProgram(gProgramId);
+
+    // Set scale, rotation, and translation
+    scale = glm::scale(glm::vec3(4.125f, 0.125f, 1.125f));
+    translation = glm::translate(glm::vec3(-0.75f, -0.873f, 2.0f));
+    model = translation * scale; // Creates transform matrix
+
+    // Reference matrix uniforms from the shader program
+    viewLoc = glGetUniformLocation(gProgramId, "view");
+    projLoc = glGetUniformLocation(gProgramId, "projection");
+    modelLoc = glGetUniformLocation(gProgramId, "model");
+
+    // Pass matrix data to the shader program's matrix uniforms
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+    glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+
+    // Reference matrix uniforms
+    lightColorLoc = glGetUniformLocation(gProgramId, "lightColor");
+    lightPositionLoc = glGetUniformLocation(gProgramId, "lightPos");
+    viewPositionLoc = glGetUniformLocation(gProgramId, "viewPosition");
+    lightColorLoc2 = glGetUniformLocation(gProgramId, "lightColor2");
+    lightPositionLoc2 = glGetUniformLocation(gProgramId, "lightPos2");
+    viewPositionLoc2 = glGetUniformLocation(gProgramId, "viewPosition2");
+
+    // Pass color, light, and camera data to the shader program's corresponding uniforms
+    glUniform3f(lightColorLoc, gLightColor.r, gLightColor.g, gLightColor.b);
+    glUniform3f(lightPositionLoc, gLightPosition.x, gLightPosition.y, gLightPosition.z);
+    glUniform3f(viewPositionLoc, cameraPosition.x, cameraPosition.y, cameraPosition.z);
+    glUniform3f(lightColorLoc2, gLightColor2.r, gLightColor2.g, gLightColor2.b);
+    glUniform3f(lightPositionLoc2, gLightPosition2.x, gLightPosition2.y, gLightPosition2.z);
+    glUniform3f(viewPositionLoc2, cameraPosition.x, cameraPosition.y, cameraPosition.z);
+
+    // Set texture scale
+    uvScale = glm::vec2(1.0f, 1.0f);
+    uvScaleLoc = glGetUniformLocation(gProgramId, "uvScale");
+    glUniform2fv(uvScaleLoc, 1, glm::value_ptr(uvScale));
+
+    // Bind textures on corresponding texture units
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, gKeyboardTextureId);
+
+    // Draws the triangles
+    glDrawElements(GL_TRIANGLES, gPlaneAngledMesh.nIndices, GL_UNSIGNED_SHORT, NULL);
 
     // TRACKPAD: draw trackpad
     //------------------------
@@ -977,7 +1129,7 @@ void URender()
     // Set scale, rotation, and translation
     scale = glm::scale(glm::vec3(1.5625f, 0.125f, 1.125f));
     rotation = glm::rotate(glm::radians(20.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    translation = glm::translate(glm::vec3(-7.5f, -0.8749f, 1.5f));
+    translation = glm::translate(glm::vec3(-7.5f, -0.874f, 1.5f));
     model = translation * rotation * scale; // Creates transform matrix
 
     // Reference matrix uniforms from the shader program
@@ -1013,10 +1165,62 @@ void URender()
 
     // Bind textures on corresponding texture units
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, gInfinityCubeTextureId);
+    glBindTexture(GL_TEXTURE_2D, gAluminumTextureId);
 
     // Draws the triangles
     glDrawArrays(GL_TRIANGLES, 0, gWedgeMesh.nIndices);
+
+    // TRACKPAD: draw trackpad surface
+    //--------------------------------
+    // Activate the VBOs contained within the mesh's VAO
+    glBindVertexArray(gPlaneAngledMesh.vao);
+
+    // Set the shader to be used
+    glUseProgram(gProgramId);
+
+    // Set scale, rotation, and translation
+    scale = glm::scale(glm::vec3(1.5625f, 0.125f, 1.125f));
+    rotation = glm::rotate(glm::radians(20.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    translation = glm::translate(glm::vec3(-7.5f, -0.873f, 1.5f));
+    model = translation * rotation * scale; // Creates transform matrix
+
+    // Reference matrix uniforms from the shader program
+    viewLoc = glGetUniformLocation(gProgramId, "view");
+    projLoc = glGetUniformLocation(gProgramId, "projection");
+    modelLoc = glGetUniformLocation(gProgramId, "model");
+
+    // Pass matrix data to the shader program's matrix uniforms
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+    glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+
+    // Reference matrix uniforms
+    lightColorLoc = glGetUniformLocation(gProgramId, "lightColor");
+    lightPositionLoc = glGetUniformLocation(gProgramId, "lightPos");
+    viewPositionLoc = glGetUniformLocation(gProgramId, "viewPosition");
+    lightColorLoc2 = glGetUniformLocation(gProgramId, "lightColor2");
+    lightPositionLoc2 = glGetUniformLocation(gProgramId, "lightPos2");
+    viewPositionLoc2 = glGetUniformLocation(gProgramId, "viewPosition2");
+
+    // Pass color, light, and camera data to the shader program's corresponding uniforms
+    glUniform3f(lightColorLoc, gLightColor.r, gLightColor.g, gLightColor.b);
+    glUniform3f(lightPositionLoc, gLightPosition.x, gLightPosition.y, gLightPosition.z);
+    glUniform3f(viewPositionLoc, cameraPosition.x, cameraPosition.y, cameraPosition.z);
+    glUniform3f(lightColorLoc2, gLightColor2.r, gLightColor2.g, gLightColor2.b);
+    glUniform3f(lightPositionLoc2, gLightPosition2.x, gLightPosition2.y, gLightPosition2.z);
+    glUniform3f(viewPositionLoc2, cameraPosition.x, cameraPosition.y, cameraPosition.z);
+
+    // Set texture scale
+    uvScale = glm::vec2(1.0f, 1.0f);
+    uvScaleLoc = glGetUniformLocation(gProgramId, "uvScale");
+    glUniform2fv(uvScaleLoc, 1, glm::value_ptr(uvScale));
+
+    // Bind textures on corresponding texture units
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, gTrackpadTextureId);
+
+    // Draws the triangles
+    glDrawElements(GL_TRIANGLES, gPlaneAngledMesh.nIndices, GL_UNSIGNED_SHORT, NULL);
 
     // LAMP 1: draw lamp
     //----------------
@@ -1277,21 +1481,29 @@ void UCreateCylinderMesh(GLMesh& mesh)
     glEnableVertexAttribArray(2);
 }
 
-// Create plane mesh
-void UCreatePlaneMesh(GLMesh& mesh)
+// Create plane mesh (default angle set to 0)
+void UCreatePlaneMesh(GLMesh& mesh, float frontHeight, float backHeight)
 {
+    if (frontHeight < 0 || frontHeight > 1 || backHeight < 0 || backHeight > 1)
+    {
+        throw invalid_argument("Height must be between 0 and 1");
+    }
+
+    float fh = -1 + (frontHeight * 2), bh = -1 + (backHeight * 2);
+
     GLfloat verts[] = {
-        // Positions           // Normals            //Textures
-        // ----------------------------------------------------
-       -1.0f,  0.0f,  1.0f,   0.0f,  1.0f,  0.0f,   0.0f, 1.0f, // Index 0 - top left
-        1.0f,  0.0f,  1.0f,   0.0f,  1.0f,  0.0f,   1.0f, 1.0f, // Index 1 - top right
-        1.0f,  0.0f, -1.0f,   0.0f,  1.0f,  0.0f,   1.0f, 0.0f, // Index 2 - bottom right
-       -1.0f,  0.0f, -1.0f,   0.0f,  1.0f,  0.0f,   0.0f, 0.0f, // Index 3 - bottom left
+        // Positions        // Normals            //Textures
+        // -------------------------------------------------
+       -1.0f,  fh,  1.0f,   0.0f,  1.0f,  0.0f,   0.0f, 1.0f, // Index 0 - top left
+        1.0f,  fh,  1.0f,   0.0f,  1.0f,  0.0f,   1.0f, 1.0f, // Index 1 - top right
+        1.0f,  bh, -1.0f,   0.0f,  1.0f,  0.0f,   1.0f, 0.0f, // Index 2 - bottom right
+       -1.0f,  bh, -1.0f,   0.0f,  1.0f,  0.0f,   0.0f, 0.0f, // Index 3 - bottom left
     };
 
     // Index data to share position data
     GLushort indices[] = {
-        3, 0, 1, 1, 2, 3  // plane
+        0, 1, 3,  // Triangle 1
+        1, 2, 3   // Triangle 2
     };
 
     const GLuint floatsPerVertex = 3;
@@ -1474,14 +1686,17 @@ void UDestroyMesh(GLMesh& mesh)
     glDeleteBuffers(2, mesh.vbos);
 }
 
-// Generate and load the texture
-bool UCreateTexture(const char* filename, GLuint& textureId)
+// Generate and load the texture (defaults to flipping image)
+bool UCreateTexture(const char* filename, GLuint& textureId, bool flipImage)
 {
     int width, height, channels;
     unsigned char* image = stbi_load(filename, &width, &height, &channels, 0);
     if (image)
     {
-        flipImageVertically(image, width, height, channels);
+        if (flipImage)
+        {
+            flipImageVertically(image, width, height, channels);
+        }
 
         glGenTextures(1, &textureId);
         glBindTexture(GL_TEXTURE_2D, textureId);

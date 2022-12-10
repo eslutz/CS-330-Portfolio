@@ -37,5 +37,17 @@
     <Image Include="..\textures\mouse_pad.png">
       <Filter>TextureFiles</Filter>
     </Image>
+    <Image Include="..\textures\aluminum.png">
+      <Filter>TextureFiles</Filter>
+    </Image>
+    <Image Include="..\textures\infinity_cube.png">
+      <Filter>TextureFiles</Filter>
+    </Image>
+    <Image Include="..\textures\keyboard.png">
+      <Filter>TextureFiles</Filter>
+    </Image>
+    <Image Include="..\textures\trackpad.png">
+      <Filter>TextureFiles</Filter>
+    </Image>
   </ItemGroup>
 </Project>
