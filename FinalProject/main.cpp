@@ -11,7 +11,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h> // Image loading Utility functions
 
- // GLM Math Header inclusions
+// GLM Math Header inclusions
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -120,7 +120,6 @@ void URender();
 bool UCreateShaderProgram(const char* vtxShaderSource, const char* fragShaderSource, GLuint& programId);
 void UDestroyShaderProgram(GLuint programId);
 
-
 /* Vertex Shader Source Code */
 const GLchar* vertexShaderSource = GLSL(440,
     layout(location = 0) in vec3 position; // Vertex data from Vertex Attrib Pointer 0
@@ -222,15 +221,15 @@ const GLchar* fragmentShaderSource = GLSL(440,
 const GLchar* lampVertexShaderSource = GLSL(440,
     layout(location = 0) in vec3 position; // Vertex data from Vertex Attrib Pointer 0
 
-// Uniform / Global variables for the  transform matrices
-uniform mat4 model;
-uniform mat4 view;
-uniform mat4 projection;
+    // Uniform / Global variables for the  transform matrices
+    uniform mat4 model;
+    uniform mat4 view;
+    uniform mat4 projection;
 
-void main()
-{
-    gl_Position = projection * view * model * vec4(position, 1.0f); // Transforms vertices into clip coordinates
-}
+    void main()
+    {
+        gl_Position = projection * view * model * vec4(position, 1.0f); // Transforms vertices into clip coordinates
+    }
 );
 
 /* Lamp Fragment Shader Source Code */
@@ -243,7 +242,7 @@ const GLchar* lampFragmentShaderSource = GLSL(440,
     }
 );
 
-// Images are loaded with Y axis going down, but OpenGL's Y axis goes up, so let's flip it
+// Images are loaded with Y axis going down, but OpenGL's Y axis goes up, so flip it
 void flipImageVertically(unsigned char* image, int width, int height, int channels)
 {
     for (int j = 0; j < height / 2; ++j)
@@ -421,7 +420,6 @@ int main(int argc, char* argv[])
     UDestroyMesh(gSphereMesh);
     UDestroyMesh(gWedgeMesh);
 
-
     // Release texture
     UDestroyTexture(gDeskTextureId);
     UDestroyTexture(gMeshFabricTextureId);
@@ -471,7 +469,7 @@ bool UInitialize(int argc, char* argv[], GLFWwindow** window)
     glfwSetMouseButtonCallback(*window, UMouseButtonCallback);
 
     // tell GLFW to capture our mouse
-    glfwSetInputMode(*window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+    glfwSetInputMode(*window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     // GLEW: initialize
     // ----------------
@@ -486,7 +484,25 @@ bool UInitialize(int argc, char* argv[], GLFWwindow** window)
     }
 
     // Displays GPU OpenGL version
-    cout << "INFO: OpenGL Version: " << glGetString(GL_VERSION) << endl;
+    cout << "INFO: OpenGL Version: " << glGetString(GL_VERSION) << endl << endl;
+
+    // Displays scene controls
+    // -----------------------
+    cout << "Movement controls" << endl;
+    cout << "WASD keys : Move forward, backward, left, or right" << endl;
+    cout << "QE keys : Move up or down" << endl;
+    cout << "Mouse cursor : Look up, down, left, or right" << endl;
+    cout << "Mouse scroll : Adjust the speed of the movement" << endl << endl;
+    cout << "Other controls" << endl;
+    cout << "L / K keys : Start / stop light orbit" << endl;
+    cout << "O / P keys : Switch between orthographic and perspective views" << endl;
+    cout << "Shift key + mouse scroll : Zoom in or out" << endl << endl;
+    cout << "Reset controls" << endl;
+    cout << "Left click : Reset view" << endl;
+    cout << "Right click : Reset movement speed" << endl;
+    cout << "Shift key + right click : Reset zoom" << endl << endl;
+    cout << "Exit program" << endl;
+    cout << "ESC key : Exit the program" << endl << endl;
 
     return true;
 }
@@ -1335,7 +1351,6 @@ void URender()
 
     // Draws the triangles
     glDrawArrays(GL_TRIANGLES, 0, gCubeMesh.nIndices);
-
 
     // LAMP 1: draw lamp
     //----------------
