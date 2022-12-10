@@ -145,8 +145,10 @@
     <Image Include="..\textures\desk.png" />
     <Image Include="..\textures\infinity_cube.png" />
     <Image Include="..\textures\keyboard.png" />
+    <Image Include="..\textures\mouse.png" />
     <Image Include="..\textures\mouse_pad.png" />
     <Image Include="..\textures\trackpad.png" />
+    <Image Include="..\textures\whiteboard.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
