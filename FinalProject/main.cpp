@@ -80,13 +80,13 @@ namespace
     float gLastFrame = 0.0f;
 
     // Light color, position and scale
-    glm::vec3 gLightColor(0.639f, 0.592f, 0.512f); // White
-    glm::vec3 gLightPosition(12.0f, 2.0f, 5.0f);
+    glm::vec3 gLightColor(0.639f, 0.592f, 0.512f); // Warm white
+    glm::vec3 gLightPosition(-10.0f, 5.0f, 5.0f);
     glm::vec3 gLightScale(0.3f);
 
     // Light 2 color, position and scale
-    glm::vec3 gLightColor2(0.639f, 0.592f, 0.512f); // White
-    glm::vec3 gLightPosition2(-12.0f, 5.0f, 5.0f);
+    glm::vec3 gLightColor2(0.25f, 0.0f, 0.6f); // Purple
+    glm::vec3 gLightPosition2(12.0f, 2.0f, 5.0f);
     glm::vec3 gLightScale2(0.3f);
 
     // Lamp animation
@@ -167,11 +167,11 @@ const GLchar* fragmentShaderSource = GLSL(440,
         /* Phong lighting model calculations to generate ambient, diffuse, and specular components */
 
         // LAMP 1: Calculate ambient lighting
-        float ambientStrength = 0.75f; // Set ambient or global lighting strength 75%
+        float ambientStrength = 0.85f; // Set ambient or global lighting strength 85%
         vec3 ambient = ambientStrength * lightColor; // Generate ambient light color
 
         // LAMP 2: Calculate ambient lighting
-        float ambientStrength2 = 0.55f; // Set ambient or global lighting strength 55%
+        float ambientStrength2 = 0.35f; // Set ambient or global lighting strength 35%
         vec3 ambient2 = ambientStrength2 * lightColor2; // Generate ambient light color
 
         // LAMP 1: Calculate diffuse lighting
