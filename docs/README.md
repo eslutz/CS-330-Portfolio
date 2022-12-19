@@ -1,12 +1,25 @@
 # CS-330-Portfolio
 
-Portfolio from CS-330 Computational Graphics and Visualization.
+Project from CS-330 Computational Graphics and Visualization.
 
-- [Design Decisions](./Project%20Reflection.pdf)
+- [Design Decisions](Project%20Reflection.pdf)
+- [Scene Images](#scene-images)
+  - [3D scene](#3d-scene)
+  - [Source image](#scene-source-image)
+  - [Scene animation](#scene-animation)
+- [Reflection](#reflection)
 
-| 3D Scene | Original Scene |
-| --- | --- |
-| ![Scene screenshot](images/3D_scene.png) | ![Scene source image](images/source%20images/scene_2.jpeg) |
+## Scene Images
+
+### 3D scene
+
+![Scene screenshot](images/3D_scene.png)
+
+### Scene source image
+
+![Scene source image](images/source%20images/scene_2.jpeg)
+
+### Scene animation
 
 ![Scene animation](images/3D_scene.gif)
 
