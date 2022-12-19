@@ -4,6 +4,12 @@ Portfolio from CS-330 Computational Graphics and Visualization.
 
 - [Design Decisions](./Project%20Reflection.pdf)
 
+| 3D Scene | Original Scene |
+| --- | --- |
+| ![Scene screenshot](images/3D_scene.png) | ![Scene source image](images/source%20images/scene_2.jpeg) |
+
+![Scene animation](images/3D_scene.gif)
+
 ## Reflection
 
 ### How do I approach designing software?
