@@ -4,8 +4,6 @@ Portfolio from CS-330 Computational Graphics and Visualization.
 
 - [Design Decisions](./Project%20Reflection.pdf)
 
----
-
 ## Reflection
 
 ### How do I approach designing software?
